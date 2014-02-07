@@ -52,7 +52,7 @@ public class NoSbdhParser {
             sbdh.setMessageId(new MessageId(UUID.randomUUID().toString()));
             return sbdh;
         } catch (Exception e) {
-            throw new IllegalStateException("Unable to parse document " + e.getMessage(), e);
+	    return new PeppolStandardBusinessHeader();
         }
 
     }

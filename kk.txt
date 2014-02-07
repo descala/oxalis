@@ -1,0 +1,1 @@
+<kk>Això és una kk en utf-8, envoltada per un kk</kk>
