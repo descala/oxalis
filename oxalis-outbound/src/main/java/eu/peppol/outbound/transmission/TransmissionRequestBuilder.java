@@ -134,12 +134,9 @@ public class TransmissionRequestBuilder {
             // Wraps the payload with an SBDH, as this is required for AS2
             payload = wrapPayLoadWithSBDH(new ByteArrayInputStream(payload));
 
+        } else if (endpointAddress.getBusDoxProtocol() == BusDoxProtocol.START && sbdhDetected) {
+                throw new IllegalStateException("Payload may not contain SBDH when using protocol " + endpointAddress.getBusDoxProtocol().toString());
         }
-
-        // TODO enable this check to not allow SBDG in START
-        // else if (endpointAddress.getBusDoxProtocol() == BusDoxProtocol.START && sbdhDetected) {
-        //     throw new IllegalStateException("Payload may not contain SBDH when using protocol " + endpointAddress.getBusDoxProtocol().toString());
-        // }
 
         // Transfers all the properties of this object into the newly created TransmissionRequest
         return new TransmissionRequest(this);
