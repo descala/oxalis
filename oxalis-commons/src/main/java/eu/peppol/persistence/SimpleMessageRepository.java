@@ -229,7 +229,7 @@ public class SimpleMessageRepository implements MessageRepository {
     }
 
     String normalize(String s) {
-        return s.replaceAll("[:\\/]", "_");
+        return s.replaceAll("[:\\/]", "_").toLowerCase();
     }
 
 }
