@@ -6,6 +6,7 @@ import com.google.inject.name.Named;
 import eu.peppol.BusDoxProtocol;
 import eu.peppol.PeppolStandardBusinessHeader;
 import eu.peppol.identifier.*;
+import eu.peppol.outbound.OxalisOutboundModule;
 import eu.peppol.outbound.guice.TestResourceModule;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -16,9 +17,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Map;
+import java.util.UUID;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.*;
 
 /**
  * @author steinar
@@ -32,17 +34,21 @@ public class TransmissionRequestBuilderTest {
     @Inject
     Injector injector;
 
-    // This resource should contain an SBDH
-    @Inject @Named("sampleXml")
+    @Inject @Named("sample-xml-with-sbdh")
     InputStream inputStreamWithSBDH;
 
-
-    @Inject @Named("no-sbdh-xml")
+    @Inject @Named("sample-xml-no-sbdh")
     InputStream noSbdhInputStream;
+
+    @Inject @Named("sample-xml-missing-metadata")
+    InputStream missingMetadataInputStream;
+
+    @Inject @Named("test-files-with-identification")
+    public Map<String, PeppolStandardBusinessHeader> testFilesForIdentification;
 
     @BeforeMethod
     public void setUp() {
-        transmissionRequestBuilder =injector.getInstance(TransmissionRequestBuilder.class);
+        transmissionRequestBuilder = injector.getInstance(TransmissionRequestBuilder.class);
         inputStreamWithSBDH.mark(Integer.MAX_VALUE);
         noSbdhInputStream.mark(Integer.MAX_VALUE);
     }
@@ -158,6 +164,70 @@ public class TransmissionRequestBuilderTest {
                 .overrideAs2Endpoint(url, "APP_1000000006").build();
         assertEquals(request.getEndpointAddress().getBusDoxProtocol(), BusDoxProtocol.AS2);
         assertEquals(request.getEndpointAddress().getUrl(), url);
+    }
+
+    @Test
+    public void testOverrideOfAllValues() throws Exception {
+        MessageId messageId = new MessageId("messageid");
+        TransmissionRequest request = transmissionRequestBuilder
+                .payLoad(inputStreamWithSBDH)
+                .sender(WellKnownParticipant.DIFI)
+                .receiver(WellKnownParticipant.U4_TEST)
+                .documentType(PeppolDocumentTypeIdAcronym.ORDER.getDocumentTypeIdentifier())
+                .processType(PeppolProcessTypeIdAcronym.ORDER_ONLY.getPeppolProcessTypeId())
+                .messageId(messageId)
+                .build();
+        PeppolStandardBusinessHeader meta = request.getPeppolStandardBusinessHeader();
+        assertEquals(meta.getSenderId(), WellKnownParticipant.DIFI);
+        assertEquals(meta.getRecipientId(), WellKnownParticipant.U4_TEST);
+        assertEquals(meta.getDocumentTypeIdentifier(), PeppolDocumentTypeIdAcronym.ORDER.getDocumentTypeIdentifier());
+        assertEquals(meta.getProfileTypeIdentifier(), PeppolProcessTypeIdAcronym.ORDER_ONLY.getPeppolProcessTypeId());
+        assertEquals(meta.getMessageId(), messageId);
+    }
+
+    @Test
+    public void makeSureWeDetectMissingProperties() {
+        try {
+            TransmissionRequest request = transmissionRequestBuilder
+                    .payLoad(missingMetadataInputStream)
+                    .build();
+            fail("The build() should have failed indicating missing properties");
+        } catch (Exception ex) {
+            assertEquals(ex.getMessage(), "TransmissionRequest can not be built, recipientId, senderId metadata was missing");
+        }
+    }
+
+    /**
+     * Test decoding of various PEPPOL UBL / EHF document types.
+     * Make sure type, profile, customization, version, sender and receivcer are retrieved correctly from all.
+     */
+    @Test
+    public void testIdentificationOfAllFiles() throws Exception {
+
+        OxalisOutboundModule oxalisOutboundModule = new OxalisOutboundModule();
+
+        for (String key : testFilesForIdentification.keySet()) {
+
+            System.out.printf("Identifying '%s'\n", key);
+
+            InputStream inputStream = TransmissionTestModule.class.getClassLoader().getResourceAsStream(key);
+            assertNotNull(inputStream, "Unable to load '" + key + "' from classpath");
+
+            TransmissionRequestBuilder requestBuilder = oxalisOutboundModule.getTransmissionRequestBuilder();
+            requestBuilder.savePayLoad(inputStream);
+            requestBuilder.overrideEndpointForStartProtocol(new URL("https://ap-test.unit4.com/override/trick/to/preventSMPLookup"));
+            TransmissionRequest request = requestBuilder.build();
+
+            PeppolStandardBusinessHeader facit = testFilesForIdentification.get(key);
+            PeppolStandardBusinessHeader found = request.getPeppolStandardBusinessHeader();
+
+            assertEquals(found.getDocumentTypeIdentifier(), facit.getDocumentTypeIdentifier());
+            assertEquals(found.getProfileTypeIdentifier(), facit.getProfileTypeIdentifier());
+            assertEquals(found.getSenderId(), facit.getSenderId());
+            assertEquals(found.getRecipientId(), facit.getRecipientId());
+
+        }
+
     }
 
 }
