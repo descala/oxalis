@@ -28,7 +28,7 @@ public class PeppolDocumentTypeId implements Serializable {
      *     &lt;root NS>::&lt;document element local name>##&lt;customization id>::&lt;version>
      * </pre>
      */
-    static Pattern documentIdPattern = Pattern.compile("(urn:.*)::(.*)##(urn:.*)::(.*)");
+    static Pattern documentIdPattern = Pattern.compile("(urn:.*)::(.*)##(.*)::(.*)");
 
     public PeppolDocumentTypeId(String rootNameSpace, String localName, CustomizationIdentifier customizationIdentifier, String version) {
         this.rootNameSpace = rootNameSpace;
