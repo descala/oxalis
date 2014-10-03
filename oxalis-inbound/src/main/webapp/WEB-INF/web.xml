@@ -49,14 +49,14 @@
         <servlet-name>accessPointService</servlet-name>
         <url-pattern>/accessPointService</url-pattern>
     </servlet-mapping>
-    <servlet-mapping>
+<!--    <servlet-mapping>
         <servlet-name>statisticsServlet</servlet-name>
         <url-pattern>/statistics/*</url-pattern>
     </servlet-mapping>
     <servlet-mapping>
         <servlet-name>statusServlet</servlet-name>
         <url-pattern>/status</url-pattern>
-    </servlet-mapping>
+    </servlet-mapping> -->
 
     <resource-ref>
         <description>JNDI DataSource for the DBMS persister</description>
