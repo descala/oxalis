@@ -36,10 +36,8 @@ import java.io.*;
 public class IngentMessageRepository implements MessageRepository {
 
     private static final Logger log = LoggerFactory.getLogger(IngentMessageRepository.class);
-    private final GlobalConfiguration globalConfiguration;
 
-    public IngentMessageRepository(GlobalConfiguration globalConfiguration) {
-        this.globalConfiguration = globalConfiguration;
+    public IngentMessageRepository() {
     }
 
     @Override
@@ -47,7 +45,7 @@ public class IngentMessageRepository implements MessageRepository {
 
         log.info("Backup inbound message document using " + IngentMessageRepository.class.getSimpleName());
         //File backupDirectory = prepareMessageDirectory(globalConfiguration.getInboundMessageBackupStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
-        File backupDirectory = prepareBackupDirectory(globalConfiguration.getInboundMessageBackupStore());
+        File backupDirectory = prepareBackupDirectory(GlobalConfiguration.getInstance().getInboundMessageBackupStore());
 
         File backupFullPath = new File("");
         try {
@@ -61,7 +59,7 @@ public class IngentMessageRepository implements MessageRepository {
         log.info("Saving inbound message document using " + IngentMessageRepository.class.getSimpleName());
         log.debug("Default inbound message headers " + peppolMessageMetaData);
 
-        File messageDirectory = prepareMessageDirectory(globalConfiguration.getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
+        File messageDirectory = prepareMessageDirectory(GlobalConfiguration.getInstance().getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
 
         try {
 
@@ -83,7 +81,7 @@ public class IngentMessageRepository implements MessageRepository {
         log.info("Saving inbound message stream using " + IngentMessageRepository.class.getSimpleName());
         log.debug("Default inbound message headers " + peppolMessageMetaData);
 
-        File messageDirectory = prepareMessageDirectory(globalConfiguration.getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
+        File messageDirectory = prepareMessageDirectory(GlobalConfiguration.getInstance().getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
 
         try {
 
