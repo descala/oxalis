@@ -26,6 +26,7 @@
         <module>oxalis-jdbc-jndi</module>
         <module>oxalis-sql</module>
         <module>oxalis-as2</module>
+        <module>ingent-persistence</module>
     </modules>
 
     <properties>

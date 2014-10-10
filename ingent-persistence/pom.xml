@@ -6,7 +6,7 @@
     <artifactId>oxalis</artifactId>
     <version>3.0.2-SNAPSHOT</version>
   </parent>
-  <artifactId>ingent-message-repository</artifactId>
+  <artifactId>ingent-persistence</artifactId>
   <name>Ingent MessageRepository</name>
   <description>Ingent implementation of MessageRepository for Oxalis</description>
 
