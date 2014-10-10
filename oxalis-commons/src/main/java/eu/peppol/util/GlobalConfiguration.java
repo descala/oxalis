@@ -251,7 +251,7 @@ public enum GlobalConfiguration {
         /**
          * Where to store inbound messages
          */
-        INBOUND_MESSAGE_BACKUP_STORE("oxalis.inbound.message.backup.store", true, System.getProperty("java.io.tmpdir") + "inbound"),
+        INBOUND_MESSAGE_BACKUP_STORE("ingent.inbound.message.backup.store", true, System.getProperty("java.io.tmpdir") + "inbound"),
 
         /**
          * Class path entry where the persistence module is located.

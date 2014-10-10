@@ -36,21 +36,26 @@ import java.io.*;
 public class IngentMessageRepository implements MessageRepository {
 
     private static final Logger log = LoggerFactory.getLogger(IngentMessageRepository.class);
+    private GlobalConfiguration globalConfiguration;
 
     public IngentMessageRepository() {
+        globalConfiguration = GlobalConfiguration.getInstance();
     }
 
     @Override
     public void saveInboundMessage(PeppolMessageMetaData peppolMessageMetaData, Document document) throws OxalisMessagePersistenceException {
 
-        log.info("Backup inbound message document using " + IngentMessageRepository.class.getSimpleName());
-        //File backupDirectory = prepareMessageDirectory(globalConfiguration.getInboundMessageBackupStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
-        File backupDirectory = prepareBackupDirectory(GlobalConfiguration.getInstance().getInboundMessageBackupStore());
+        log.debug("Backup inbound message document to " + globalConfiguration.getInboundMessageBackupStore());
+        log.debug("Final inbound message destination: " + globalConfiguration.getInboundMessageStore());
+
+        File backupDirectory = prepareBackupDirectory(globalConfiguration.getInboundMessageBackupStore());
 
         File backupFullPath = new File("");
         try {
             backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
             saveDocument(document, backupFullPath);
+            File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
+            saveHeader(peppolMessageMetaData, messageHeaderFilePath);
         } catch (Exception e) {
             log.error("Can't save backup for " + backupFullPath);
             log.error(e.getMessage());
@@ -59,7 +64,7 @@ public class IngentMessageRepository implements MessageRepository {
         log.info("Saving inbound message document using " + IngentMessageRepository.class.getSimpleName());
         log.debug("Default inbound message headers " + peppolMessageMetaData);
 
-        File messageDirectory = prepareMessageDirectory(GlobalConfiguration.getInstance().getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
+        File messageDirectory = prepareMessageDirectory(globalConfiguration.getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
 
         try {
 
@@ -81,7 +86,7 @@ public class IngentMessageRepository implements MessageRepository {
         log.info("Saving inbound message stream using " + IngentMessageRepository.class.getSimpleName());
         log.debug("Default inbound message headers " + peppolMessageMetaData);
 
-        File messageDirectory = prepareMessageDirectory(GlobalConfiguration.getInstance().getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
+        File messageDirectory = prepareMessageDirectory(globalConfiguration.getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
 
         try {
 
