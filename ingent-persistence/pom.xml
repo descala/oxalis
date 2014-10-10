@@ -1,0 +1,45 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>no.sendregning.ap</groupId>
+    <artifactId>oxalis</artifactId>
+    <version>3.0.2-SNAPSHOT</version>
+  </parent>
+  <artifactId>ingent-message-repository</artifactId>
+  <name>Ingent MessageRepository</name>
+  <description>Ingent implementation of MessageRepository for Oxalis</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>no.sendregning.ap</groupId>
+      <artifactId>oxalis-commons</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <!-- The two resource blocks are required due to the fact that we have
+           binary stuff, which should not be filtered, together with stuff, which
+           should be filtered -->
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+        <excludes>
+          <exclude>**/*.jks</exclude>
+          <exclude>**/*.key</exclude>
+        </excludes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+        <includes>
+          <include>**/*.jks</include>
+          <include>**/*.key</include>
+        </includes>
+      </resource>
+    </resources>
+  </build>
+
+</project>

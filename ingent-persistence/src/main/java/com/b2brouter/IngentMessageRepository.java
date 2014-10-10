@@ -1,9 +1,12 @@
-package eu.peppol.persistence;
+package com.b2brouter;
 
 import eu.peppol.PeppolMessageMetaData;
 import eu.peppol.identifier.ParticipantId;
 import eu.peppol.identifier.SchemeId;
 import eu.peppol.identifier.TransmissionId;
+import eu.peppol.persistence.MessageRepository;
+import eu.peppol.persistence.OxalisMessagePersistenceException;
+import eu.peppol.persistence.SimpleMessageRepositoryException;
 import eu.peppol.util.GlobalConfiguration;
 import eu.peppol.util.OxalisVersion;
 import org.slf4j.Logger;
