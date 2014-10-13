@@ -37,6 +37,7 @@ public class IngentMessageRepository implements MessageRepository {
 
     private static final Logger log = LoggerFactory.getLogger(IngentMessageRepository.class);
     private GlobalConfiguration globalConfiguration;
+    private static final String BACKUPS_PATH = "ingent.inbound.message.backup.store";
 
     public IngentMessageRepository() {
         globalConfiguration = GlobalConfiguration.getInstance();
@@ -45,10 +46,10 @@ public class IngentMessageRepository implements MessageRepository {
     @Override
     public void saveInboundMessage(PeppolMessageMetaData peppolMessageMetaData, Document document) throws OxalisMessagePersistenceException {
 
-        log.debug("Backup inbound message document to " + globalConfiguration.getInboundMessageBackupStore());
+        log.debug("Backup inbound message document to " + globalConfiguration.getProperties().getProperty(BACKUPS_PATH));
         log.debug("Final inbound message destination: " + globalConfiguration.getInboundMessageStore());
 
-        File backupDirectory = prepareBackupDirectory(globalConfiguration.getInboundMessageBackupStore());
+        File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperties().getProperty(BACKUPS_PATH));
 
         File backupFullPath = new File("");
         try {

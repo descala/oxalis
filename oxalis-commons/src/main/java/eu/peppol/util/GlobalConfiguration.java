@@ -118,6 +118,10 @@ public enum GlobalConfiguration {
         }
     }
 
+    public Properties getProperties() {
+        return properties;
+    }
+
     void logProperties() {
         for (PropertyDef propertyDef : PropertyDef.values()) {
             if (!propertyDef.isHidden()) {
@@ -176,10 +180,6 @@ public enum GlobalConfiguration {
 
     public String getInboundMessageStore() {
         return INBOUND_MESSAGE_STORE.getValue(properties);
-    }
-
-    public String getInboundMessageBackupStore() {
-        return INBOUND_MESSAGE_BACKUP_STORE.getValue(properties);
     }
 
     public String getPersistenceClassPath() {
@@ -247,11 +247,6 @@ public enum GlobalConfiguration {
          * Where to store inbound messages
          */
         INBOUND_MESSAGE_STORE("oxalis.inbound.message.store", true, System.getProperty("java.io.tmpdir") + "inbound"),
-
-        /**
-         * Where to store inbound messages
-         */
-        INBOUND_MESSAGE_BACKUP_STORE("ingent.inbound.message.backup.store", true, System.getProperty("java.io.tmpdir") + "inbound"),
 
         /**
          * Class path entry where the persistence module is located.
