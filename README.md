@@ -58,6 +58,9 @@ Binary distributions are available at [Difi](http://vefa.difi.no/oxalis/).
 
 * `Provider net.sf.saxon.TransformerFactoryImpl not found` might be an XSLT implementation conflice between Oxalis and the [VEFA validator](https://github.com/difi/vefa-validator-app).  VEFA needs XSLT 2.0 and explicitly set Saxon 9 as the transformer engine to the JVM.  Since Saxon 9 is not used and included with Oxalis you'll end up with that error on the Oxalis side.  To get rid of the error make sure you run Oxalis and VEFA in separate Tomcats/JVM processes.
 
+* `ValidatorException: PKIX path building failed` is probably because the receivers SSL certificate does not contain the correct certificate chain.  The AS2 implementation needs to validate the SSL certificate chain and any intermediate certificates needs to be present.  See the https://github.com/difi/oxalis/issues/173 for more info.
+
+* `Internal error occured: null` when receiving might be due to a bug in some Apache Tomcat versions.  The full error message logged is `ERROR [eu.peppol.inbound.server.AS2Servlet] [] Internal error occured: null` followed by a stack trace with `java.lang.NullPointerException: null`.  To resolve this upgrade Tomcat to a newer version, take a look at https://github.com/difi/oxalis/issues/179 for more details.
 
 # Build from source
 
@@ -87,4 +90,4 @@ By default Oxalis publish 4 web addresss listed in the table below.  The table d
 | oxalis/accessPointService | START protocol endpoint | HTTPS with proper certificates | Enable inbound access from Internet |
 | oxalis/as2 | AS2 protocol endpoint | HTTPS with proper certificates | Enable inbound access from Internet |
 | oxalis/status | Status information, for internal use and debugging | HTTP/HTTPS | Internet access can be blocked |
-| oxalis/statistics | RAW statistics for DIFI | HTTPS with proper certificates | Not is active use, can be blocked |
+| oxalis/statistics | RAW statistics for DIFI | HTTPS with proper certificates | Used by DIFI to collect statistics |
