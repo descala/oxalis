@@ -22,9 +22,12 @@ public class InvoiceDocumentParser extends AbstractDocumentParser {
         String company  = "//cac:AccountingSupplierParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID";
         ParticipantId s;
         try {
-            s = participantId(company);
-        } catch (IllegalStateException e) {
             s = participantId(endpoint);
+            if ( s.toString().startsWith("9999:") ) {
+                s = participantId(company);
+            }
+        } catch (IllegalStateException e) {
+            s = participantId(company);
         }
         Log.debug("Sender from xml: " + s);
         return s;
@@ -36,9 +39,12 @@ public class InvoiceDocumentParser extends AbstractDocumentParser {
         String company  = "//cac:AccountingCustomerParty/cac:Party/cac:PartyLegalEntity/cbc:CompanyID";
         ParticipantId s;
         try {
-            s = participantId(company);
-        } catch (IllegalStateException e) {
             s = participantId(endpoint);
+            if (s.toString().startsWith("9999:")) {
+                s = participantId(company);
+            }
+        } catch (IllegalStateException e) {
+            s = participantId(company);
         }
         Log.debug("Receiver from xml: " + s);
         return s;
