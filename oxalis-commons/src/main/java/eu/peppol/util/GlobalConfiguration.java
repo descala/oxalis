@@ -118,10 +118,6 @@ public enum GlobalConfiguration {
         }
     }
 
-    public Properties getProperties() {
-        return properties;
-    }
-
     void logProperties() {
         for (PropertyDef propertyDef : PropertyDef.values()) {
             if (!propertyDef.isHidden()) {
