@@ -1,5 +1,6 @@
 package com.b2brouter;
 
+import static com.b2brouter.Util.compress_b64;
 import eu.peppol.PeppolMessageMetaData;
 import eu.peppol.identifier.ParticipantId;
 import eu.peppol.identifier.SchemeId;
@@ -20,22 +21,23 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.*;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
 
 /**
- * Ingent implementation of MessageRepository.
- * Received messages are stored in the file system using JSON and XML.  Configure directory
- * to store messages in oxalis-global.properties as property "oxalis.inbound.message.store".
+ * Ingent implementation of MessageRepository. Received messages are stored in
+ * the file system using JSON and XML. Configure directory to store messages in
+ * oxalis-global.properties as property "oxalis.inbound.message.store".
  *
- * Additions:
- *   - Backup messages before storing them. Configure directory in oxalis-global.properties
- *     as property "ingent.inbound.message.backup"
- *   - Store log lines into a PostgreSQL database.
+ * Additions: - Backup messages before storing them. Configure directory in
+ * oxalis-global.properties as property "ingent.inbound.message.backup" - Store
+ * log lines into a PostgreSQL database.
  *
  * @author Ingent Grup Systems
  */
 public class IngentMessageRepository implements MessageRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(IngentMessageRepository.class);
+    private static final Logger LOG = LoggerFactory.getLogger(IngentMessageRepository.class);
     private GlobalConfiguration globalConfiguration;
     private static final String BACKUPS_PATH = "ingent.inbound.message.backup.store";
 
@@ -46,11 +48,11 @@ public class IngentMessageRepository implements MessageRepository {
     @Override
     public void saveInboundMessage(PeppolMessageMetaData peppolMessageMetaData, Document document) throws OxalisMessagePersistenceException {
 
-        log.debug("Backup inbound message document to " + globalConfiguration.getProperty(BACKUPS_PATH));
-        log.debug("Final inbound message destination: " + globalConfiguration.getInboundMessageStore());
+        LOG.info("Saving inbound message document using " + IngentMessageRepository.class.getSimpleName());
+        LOG.debug("Default inbound message headers " + peppolMessageMetaData);
 
+        // save a backup
         File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH));
-
         File backupFullPath = new File("");
         try {
             backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
@@ -58,25 +60,29 @@ public class IngentMessageRepository implements MessageRepository {
             File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
             saveHeader(peppolMessageMetaData, messageHeaderFilePath);
         } catch (Exception e) {
-            log.error("Can't save backup for " + backupFullPath);
-            log.error(e.getMessage());
+            LOG.error("Can't save backup for " + backupFullPath);
+            LOG.error(e.getMessage());
         }
 
-        log.info("Saving inbound message document using " + IngentMessageRepository.class.getSimpleName());
-        log.debug("Default inbound message headers " + peppolMessageMetaData);
-
-        File messageDirectory = prepareMessageDirectory(globalConfiguration.getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
-
         try {
+            DOMSource domSource = new DOMSource(document);
+            StringWriter writer = new StringWriter();
+            StreamResult result = new StreamResult(writer);
+            TransformerFactory tf = TransformerFactory.newInstance();
+            Transformer transformer = tf.newTransformer();
+            transformer.transform(domSource, result);
 
-            File messageFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), messageDirectory);
-            saveDocument(document, messageFullPath);
+            String b64_document = compress_b64(writer.toString());
+            System.out.println("BASE64: " + b64_document);
+            LOG.info(b64_document);
+            //TODO: crear aqui la Transaction
 
-            File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), messageDirectory);
-            saveHeader(peppolMessageMetaData, messageHeaderFilePath);
-
-        } catch (Exception e) {
-            throw new OxalisMessagePersistenceException(peppolMessageMetaData, e);
+        } catch (TransformerConfigurationException ex) {
+            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+        } catch (TransformerException ex) {
+            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+        } catch (IOException ex) {
+            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
         }
 
     }
@@ -84,21 +90,30 @@ public class IngentMessageRepository implements MessageRepository {
     @Override
     public void saveInboundMessage(PeppolMessageMetaData peppolMessageMetaData, InputStream payloadInputStream) throws OxalisMessagePersistenceException {
 
-        log.info("Saving inbound message stream using " + IngentMessageRepository.class.getSimpleName());
-        log.debug("Default inbound message headers " + peppolMessageMetaData);
+        LOG.info("Saving inbound message stream using " + IngentMessageRepository.class.getSimpleName());
+        LOG.debug("Default inbound message headers " + peppolMessageMetaData);
 
-        File messageDirectory = prepareMessageDirectory(globalConfiguration.getInboundMessageStore(), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
+        // save a backup
+        File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH));
+        File backupFullPath = new File("");
+        try {
+            backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
+            saveDocument(payloadInputStream, backupFullPath);
+            File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
+            saveHeader(peppolMessageMetaData, messageHeaderFilePath);
+        } catch (Exception e) {
+            LOG.error("Can't save backup for " + backupFullPath);
+            LOG.error(e.getMessage());
+        }
 
         try {
+            String b64_document = compress_b64(payloadInputStream.toString());
+            System.out.println("BASE64: " + b64_document);
+            LOG.info(b64_document);
+            //TODO: crear aqui la Transaction
 
-            File messageFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), messageDirectory);
-            saveDocument(payloadInputStream, messageFullPath);
-
-            File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), messageDirectory);
-            saveHeader(peppolMessageMetaData, messageHeaderFilePath);
-
-        } catch (Exception e) {
-            throw new OxalisMessagePersistenceException(peppolMessageMetaData, e);
+        } catch (IOException ex) {
+            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
         }
 
     }
@@ -113,29 +128,15 @@ public class IngentMessageRepository implements MessageRepository {
         return new File(messageDirectory, messageFileName);
     }
 
-    File prepareMessageDirectory(String inboundMessageStore, ParticipantId recipient, ParticipantId sender) {
-        // Computes the full path of the directory in which message and routing data should be stored.
-        File messageDirectory = computeDirectoryNameForInboundMessage(inboundMessageStore, recipient, sender);
-        if (!messageDirectory.exists()){
-            if (!messageDirectory.mkdirs()){
-                throw new IllegalStateException("Unable to create directory " + messageDirectory.toString());
-            }
-        }
-        if (!messageDirectory.isDirectory() || !messageDirectory.canWrite()) {
-            throw new IllegalStateException("Directory " + messageDirectory + " does not exist, or there is no access");
-        }
-        return messageDirectory;
-    }
-
     File prepareBackupDirectory(String inboundMessageBackupStore) {
         File backupDirectory = new File(inboundMessageBackupStore);
-        if (!backupDirectory.exists()){
-            if (!backupDirectory.mkdirs()){
-                log.error("Unable to create backup directory " + backupDirectory.toString());
+        if (!backupDirectory.exists()) {
+            if (!backupDirectory.mkdirs()) {
+                LOG.error("Unable to create backup directory " + backupDirectory.toString());
             }
         }
         if (!backupDirectory.isDirectory() || !backupDirectory.canWrite()) {
-            log.error("Backup directory " + backupDirectory + " does not exist, or there is no access");
+            LOG.error("Backup directory " + backupDirectory + " does not exist, or there is no access");
         }
         return backupDirectory;
     }
@@ -149,7 +150,7 @@ public class IngentMessageRepository implements MessageRepository {
             PrintWriter pw = new PrintWriter(new OutputStreamWriter(fos, "UTF-8"));
             pw.write(getHeadersAsJSON(peppolMessageMetaData));
             pw.close();
-            log.debug("File " + messageHeaderFilePath + " written");
+            LOG.debug("File " + messageHeaderFilePath + " written");
         } catch (FileNotFoundException e) {
             throw new IllegalStateException("Unable to create file " + messageHeaderFilePath + "; " + e, e);
         } catch (UnsupportedEncodingException e) {
@@ -216,6 +217,7 @@ public class IngentMessageRepository implements MessageRepository {
 
     /**
      * Transforms and saves the document as XML
+     *
      * @param document the XML document to be transformed
      */
     void saveDocument(Document document, File outputFile) {
@@ -224,6 +226,7 @@ public class IngentMessageRepository implements MessageRepository {
 
     /**
      * Transforms and saves the stream as XML
+     *
      * @param inputStream the XML stream to be transformed
      */
     void saveDocument(InputStream inputStream, File outputFile) {
@@ -240,7 +243,7 @@ public class IngentMessageRepository implements MessageRepository {
             transformer = tf.newTransformer();
             transformer.transform(source, result);
             fos.close();
-            log.debug("File " + destination + " written");
+            LOG.debug("File " + destination + " written");
         } catch (Exception e) {
             throw new SimpleMessageRepositoryException(destination, e);
         }
@@ -249,20 +252,6 @@ public class IngentMessageRepository implements MessageRepository {
     @Override
     public String toString() {
         return IngentMessageRepository.class.getSimpleName();
-    }
-
-    /**
-     * Computes the directory name for inbound messages.
-     * <pre>
-     *     /basedir/{recipientId}/{senderId}
-     * </pre>
-     */
-    File computeDirectoryNameForInboundMessage(String inboundMessageStore, ParticipantId recipient, ParticipantId sender) {
-        String path = String.format("%s/%s",
-                normalize(recipient.stringValue()),
-                normalize(sender.stringValue())
-            );
-        return new File(inboundMessageStore, path);
     }
 
     String normalize(String s) {
