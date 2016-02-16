@@ -21,8 +21,17 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.HttpClients;
+import org.json.simple.JSONObject;
 
 /**
  * Ingent implementation of MessageRepository. Received messages are stored in
@@ -38,8 +47,10 @@ import javax.xml.transform.TransformerException;
 public class IngentMessageRepository implements MessageRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(IngentMessageRepository.class);
-    private GlobalConfiguration globalConfiguration;
+    private final GlobalConfiguration globalConfiguration;
     private static final String BACKUPS_PATH = "ingent.inbound.message.backup.store";
+    private static final String API_URL = "ingent.api.url";
+    private static final String API_KEY = "ingent.api.key";
 
     public IngentMessageRepository() {
         globalConfiguration = GlobalConfiguration.getInstance();
@@ -73,9 +84,9 @@ public class IngentMessageRepository implements MessageRepository {
             transformer.transform(domSource, result);
 
             String b64_document = compress_b64(writer.toString());
-            System.out.println("BASE64: " + b64_document);
-            LOG.info(b64_document);
-            //TODO: crear aqui la Transaction
+            //System.out.println("BASE64: " + b64_document);
+            //LOG.info(b64_document);
+            createTransactionToWs(b64_document, peppolMessageMetaData);
 
         } catch (TransformerConfigurationException ex) {
             throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
@@ -110,7 +121,7 @@ public class IngentMessageRepository implements MessageRepository {
             String b64_document = compress_b64(payloadInputStream.toString());
             System.out.println("BASE64: " + b64_document);
             LOG.info(b64_document);
-            //TODO: crear aqui la Transaction
+            createTransactionToWs(b64_document, peppolMessageMetaData);
 
         } catch (IOException ex) {
             throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
@@ -244,7 +255,9 @@ public class IngentMessageRepository implements MessageRepository {
             transformer.transform(source, result);
             fos.close();
             LOG.debug("File " + destination + " written");
-        } catch (Exception e) {
+        } catch (TransformerException e) {
+            throw new SimpleMessageRepositoryException(destination, e);
+        } catch (IOException e) {
             throw new SimpleMessageRepositoryException(destination, e);
         }
     }
@@ -256,6 +269,51 @@ public class IngentMessageRepository implements MessageRepository {
 
     String normalize(String s) {
         return s.replaceAll("[:\\/]", "_").toLowerCase();
+    }
+
+    private void createTransactionToWs(String b64_document, PeppolMessageMetaData peppolMessageMetaData) {
+        try {
+            String apiUrl = globalConfiguration.getProperty(API_URL);
+            String apiKey = globalConfiguration.getProperty(API_KEY);
+                        
+            HttpClient httpclient = HttpClients.createDefault();
+            HttpPost httppost = new HttpPost(apiUrl);
+
+            // Request parameters and other properties.
+            JSONObject transaction = new JSONObject();
+            transaction.put("id", "asdasd");
+            transaction.put("process", "Peppol::Receive");
+            transaction.put("payload", b64_document);
+            transaction.put("metadata", peppolMessageMetaData.toString());
+            JSONObject params = new JSONObject();
+            params.put("transaction", transaction);
+            params.put("token", apiKey);
+
+            httppost.setEntity(new StringEntity(params.toString()));
+            httppost.setHeader("Content-type", "application/json");
+
+            //Execute and get the response.
+            HttpResponse response = httpclient.execute(httppost);
+            HttpEntity entity = response.getEntity();
+
+            if (entity != null) {
+                InputStream instream = entity.getContent();
+                try {
+                    // do something useful
+                } finally {
+                    instream.close();
+                }
+            }
+            
+            //print result
+            System.out.println(response.toString());
+        } catch (MalformedURLException e) {
+            System.out.println(e.getMessage());
+        } catch (ProtocolException e) {
+            System.out.println(e.getMessage());
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
 }
