@@ -7,7 +7,6 @@ import eu.peppol.identifier.SchemeId;
 import eu.peppol.identifier.TransmissionId;
 import eu.peppol.persistence.MessageRepository;
 import eu.peppol.persistence.OxalisMessagePersistenceException;
-import eu.peppol.persistence.SimpleMessageRepositoryException;
 import eu.peppol.util.GlobalConfiguration;
 import eu.peppol.util.OxalisVersion;
 import org.slf4j.Logger;
@@ -256,9 +255,9 @@ public class IngentMessageRepository implements MessageRepository {
             fos.close();
             LOG.debug("File " + destination + " written");
         } catch (TransformerException e) {
-            throw new SimpleMessageRepositoryException(destination, e);
+            throw new IngentRepositoryException(destination, e);
         } catch (IOException e) {
-            throw new SimpleMessageRepositoryException(destination, e);
+            throw new IngentRepositoryException(destination, e);
         }
     }
 
@@ -271,20 +270,41 @@ public class IngentMessageRepository implements MessageRepository {
         return s.replaceAll("[:\\/]", "_").toLowerCase();
     }
 
-    private void createTransactionToWs(String b64_document, PeppolMessageMetaData peppolMessageMetaData) {
+    private void createTransactionToWs(String b64_document, PeppolMessageMetaData peppolMessageMetaData) throws OxalisMessagePersistenceException {
         try {
             String apiUrl = globalConfiguration.getProperty(API_URL);
             String apiKey = globalConfiguration.getProperty(API_KEY);
-                        
+
             HttpClient httpclient = HttpClients.createDefault();
             HttpPost httppost = new HttpPost(apiUrl);
 
             // Request parameters and other properties.
             JSONObject transaction = new JSONObject();
-            transaction.put("id", "asdasd");
+            transaction.put("id", "peppol_"+peppolMessageMetaData.getTransmissionId());
             transaction.put("process", "Peppol::Receive");
             transaction.put("payload", b64_document);
-            transaction.put("metadata", peppolMessageMetaData.toString());
+            // Metadata
+            transaction.put("meta_message_id", String.valueOf(peppolMessageMetaData.getMessageId()));
+            transaction.put("meta_recipient_id", String.valueOf(peppolMessageMetaData.getRecipientId()));
+            transaction.put("meta_recipient_scheme_id", getSchemeId(peppolMessageMetaData.getRecipientId()));
+            transaction.put("meta_sender_id", String.valueOf(peppolMessageMetaData.getSenderId()));
+            transaction.put("meta_sender_scheme_id", getSchemeId(peppolMessageMetaData.getSenderId()));
+            transaction.put("meta_document_type_identifier", String.valueOf(peppolMessageMetaData.getDocumentTypeIdentifier()));
+            transaction.put("meta_profile_type_identifier", String.valueOf(peppolMessageMetaData.getProfileTypeIdentifier()));
+            transaction.put("meta_sending_access_point", String.valueOf(peppolMessageMetaData.getSendingAccessPoint()));
+            transaction.put("meta_receiving_access_point", String.valueOf(peppolMessageMetaData.getReceivingAccessPoint()));
+            transaction.put("meta_protocol", String.valueOf(peppolMessageMetaData.getProtocol()));
+            transaction.put("meta_user_agent", peppolMessageMetaData.getUserAgent());
+            transaction.put("meta_user_agent_version", peppolMessageMetaData.getUserAgentVersion());
+            transaction.put("meta_senders_time_stamp", String.valueOf(peppolMessageMetaData.getSendersTimeStamp()));
+            transaction.put("meta_received_time_stamp", String.valueOf(peppolMessageMetaData.getReceivedTimeStamp()));
+            transaction.put("meta_sending_access_point_principal", (peppolMessageMetaData.getSendingAccessPointPrincipal() == null) ? "" : peppolMessageMetaData.getSendingAccessPointPrincipal().getName());
+            transaction.put("meta_transmission_id", String.valueOf(peppolMessageMetaData.getTransmissionId()));
+            transaction.put("meta_build_user", OxalisVersion.getUser());
+            transaction.put("meta_build_description", OxalisVersion.getBuildDescription());
+            transaction.put("meta_build_time_stamp", OxalisVersion.getBuildTimeStamp());
+            transaction.put("meta_oxalis", OxalisVersion.getVersion());
+
             JSONObject params = new JSONObject();
             params.put("transaction", transaction);
             params.put("token", apiKey);
@@ -299,20 +319,25 @@ public class IngentMessageRepository implements MessageRepository {
             if (entity != null) {
                 InputStream instream = entity.getContent();
                 try {
-                    // do something useful
+                    if (response.getStatusLine().getStatusCode() != 200) {
+                        throw new OxalisMessagePersistenceException(peppolMessageMetaData);
+                    }
                 } finally {
                     instream.close();
                 }
             }
-            
+
             //print result
             System.out.println(response.toString());
         } catch (MalformedURLException e) {
             System.out.println(e.getMessage());
+            throw new OxalisMessagePersistenceException(peppolMessageMetaData);
         } catch (ProtocolException e) {
             System.out.println(e.getMessage());
+            throw new OxalisMessagePersistenceException(peppolMessageMetaData);
         } catch (IOException e) {
             System.out.println(e.getMessage());
+            throw new OxalisMessagePersistenceException(peppolMessageMetaData);
         }
     }
 
