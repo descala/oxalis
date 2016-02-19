@@ -51,6 +51,7 @@ public class IngentMessageRepository implements MessageRepository {
     private static final String API_URL = "ingent.api.url";
     private static final String API_KEY = "ingent.api.key";
     private static final String HALTR_URL = "ingent.haltr_url";
+    private static final String HALTR_API_KEY = "ingent.haltr_api_key";
 
     public IngentMessageRepository() {
         globalConfiguration = GlobalConfiguration.getInstance();
@@ -285,6 +286,7 @@ public class IngentMessageRepository implements MessageRepository {
             transaction.put("process", "Peppol::Receive");
             transaction.put("payload", b64_document);
             transaction.put("haltr_url", globalConfiguration.getProperty(HALTR_URL));
+            transaction.put("haltr_api_key", globalConfiguration.getProperty(HALTR_API_KEY));
             // Metadata
             transaction.put("meta_message_id", String.valueOf(peppolMessageMetaData.getMessageId()));
             transaction.put("meta_recipient_id", String.valueOf(peppolMessageMetaData.getRecipientId()));
