@@ -26,7 +26,7 @@
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
       <type>jar</type>
-      <version>4.3.1</version>
+      <version>4.3.6</version>
     </dependency>
     <dependency>
 	<groupId>com.googlecode.json-simple</groupId>

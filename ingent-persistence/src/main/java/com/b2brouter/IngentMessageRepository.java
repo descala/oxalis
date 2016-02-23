@@ -31,6 +31,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.json.simple.JSONObject;
+import eu.peppol.util.Util;
 
 /**
  * Ingent implementation of MessageRepository. Received messages are stored in
@@ -58,6 +59,7 @@ public class IngentMessageRepository implements MessageRepository {
     }
 
     @Override
+    // Used in START
     public void saveInboundMessage(PeppolMessageMetaData peppolMessageMetaData, Document document) throws OxalisMessagePersistenceException {
 
         LOG.info("Saving inbound message document using " + IngentMessageRepository.class.getSimpleName());
@@ -100,17 +102,26 @@ public class IngentMessageRepository implements MessageRepository {
     }
 
     @Override
+    // Used in AS2
     public void saveInboundMessage(PeppolMessageMetaData peppolMessageMetaData, InputStream payloadInputStream) throws OxalisMessagePersistenceException {
 
         LOG.info("Saving inbound message stream using " + IngentMessageRepository.class.getSimpleName());
         LOG.debug("Default inbound message headers " + peppolMessageMetaData);
+
+        String payload;
+        // convert payloadInputStream to String
+        try {
+            payload = new String(Util.intoBuffer(payloadInputStream, 101L * 1024 * 1024));
+        } catch (IOException ex) {
+            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+        }
 
         // save a backup
         File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH));
         File backupFullPath = new File("");
         try {
             backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
-            saveDocument(payloadInputStream, backupFullPath);
+            saveDocument(payload, backupFullPath);
             File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
             saveHeader(peppolMessageMetaData, messageHeaderFilePath);
         } catch (Exception e) {
@@ -119,11 +130,11 @@ public class IngentMessageRepository implements MessageRepository {
         }
 
         try {
-            String b64_document = compress_b64(payloadInputStream.toString());
+            String b64_document;
+            b64_document = compress_b64(payload);
             System.out.println("BASE64: " + b64_document);
             LOG.info(b64_document);
             createTransactionToWs(b64_document, peppolMessageMetaData);
-
         } catch (IOException ex) {
             throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
         }
@@ -229,6 +240,7 @@ public class IngentMessageRepository implements MessageRepository {
 
     /**
      * Transforms and saves the document as XML
+     * Used in START
      *
      * @param document the XML document to be transformed
      */
@@ -237,12 +249,14 @@ public class IngentMessageRepository implements MessageRepository {
     }
 
     /**
-     * Transforms and saves the stream as XML
+     * Transforms and saves the string as XML
+     * Used in AS2
      *
-     * @param inputStream the XML stream to be transformed
+     * @param payload the string to be transformed
      */
-    void saveDocument(InputStream inputStream, File outputFile) {
-        saveDocument(new StreamSource(inputStream), outputFile);
+    void saveDocument(String payload, File outputFile) {
+        StringReader reader = new StringReader(payload);
+        saveDocument(new StreamSource(reader), outputFile);
     }
 
     private void saveDocument(Source source, File destination) {
