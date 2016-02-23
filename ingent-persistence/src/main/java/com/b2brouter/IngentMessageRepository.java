@@ -66,7 +66,7 @@ public class IngentMessageRepository implements MessageRepository {
         LOG.debug("Default inbound message headers " + peppolMessageMetaData);
 
         // save a backup
-        File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH));
+        File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
         File backupFullPath = new File("");
         try {
             backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
@@ -117,7 +117,7 @@ public class IngentMessageRepository implements MessageRepository {
         }
 
         // save a backup
-        File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH));
+        File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
         File backupFullPath = new File("");
         try {
             backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
@@ -151,8 +151,12 @@ public class IngentMessageRepository implements MessageRepository {
         return new File(messageDirectory, messageFileName);
     }
 
-    File prepareBackupDirectory(String inboundMessageBackupStore) {
-        File backupDirectory = new File(inboundMessageBackupStore);
+    File prepareBackupDirectory(String inboundMessageBackupStore, ParticipantId recipient, ParticipantId sender) {
+        String path = String.format("%s/%s",
+            normalize(recipient.stringValue()),
+            normalize(sender.stringValue())
+        );
+        File backupDirectory = new File(inboundMessageBackupStore, path);
         if (!backupDirectory.exists()) {
             if (!backupDirectory.mkdirs()) {
                 LOG.error("Unable to create backup directory " + backupDirectory.toString());
