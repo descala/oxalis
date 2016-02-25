@@ -18,7 +18,6 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -32,6 +31,8 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.json.simple.JSONObject;
 import eu.peppol.util.Util;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 /**
  * Ingent implementation of MessageRepository. Received messages are stored in
@@ -111,7 +112,9 @@ public class IngentMessageRepository implements MessageRepository {
         String payload;
         // convert payloadInputStream to String
         try {
-            payload = new String(Util.intoBuffer(payloadInputStream, 101L * 1024 * 1024));
+	    payloadInputStream.mark(Integer.MAX_VALUE);
+            payload = new String(Util.intoBuffer(payloadInputStream, Long.MAX_VALUE));
+	    payloadInputStream.reset();
         } catch (IOException ex) {
             throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
         }
@@ -121,7 +124,7 @@ public class IngentMessageRepository implements MessageRepository {
         File backupFullPath = new File("");
         try {
             backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
-            saveDocument(payload, backupFullPath);
+            saveDocument(payloadInputStream, backupFullPath);
             File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
             saveHeader(peppolMessageMetaData, messageHeaderFilePath);
         } catch (Exception e) {
@@ -258,9 +261,14 @@ public class IngentMessageRepository implements MessageRepository {
      *
      * @param payload the string to be transformed
      */
-    void saveDocument(String payload, File outputFile) {
-        StringReader reader = new StringReader(payload);
-        saveDocument(new StreamSource(reader), outputFile);
+    void saveDocument(InputStream inputStream, File destination) {
+        //saveDocument(new StreamSource(inputStream), outputFile);
+	try {
+	    Files.copy(inputStream, destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
+	    LOG.debug("File " + destination + " written");
+	} catch (IOException e) {
+            throw new IngentRepositoryException(destination, e);
+        }
     }
 
     private void saveDocument(Source source, File destination) {

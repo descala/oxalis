@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<StandardBusinessDocument xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.unece.org/cefact/namespaces/StandardBusinessDocumentHeader">
+  <StandardBusinessDocumentHeader>
+    <HeaderVersion>1.0</HeaderVersion>
+    <Sender>
+      <Identifier Authority="iso6523-actorid-upis">9917:4412911679</Identifier>
+    </Sender>
+    <Receiver>
+      <Identifier Authority="iso6523-actorid-upis">9917:5902697199</Identifier>
+    </Receiver>
+    <DocumentIdentification>
+      <Standard>urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2</Standard>
+      <TypeVersion>2.0</TypeVersion>
+      <InstanceIdentifier>855d220b-8e52-44ec-adef-2bd3182c6ab2</InstanceIdentifier>
+      <Type>Invoice</Type>
+      <CreationDateAndTime>2016-02-25T16:20:21.5559199+00:00</CreationDateAndTime>
+    </DocumentIdentification>
+    <BusinessScope>
+      <Scope>
+        <Type>DOCUMENTID</Type>
+        <InstanceIdentifier>urn:oasis:names:specification:ubl:schema:xsd:Invoice-2::Invoice##urn:www.cenbii.eu:transaction:biicoretrdm010:ver1.0::2.0</InstanceIdentifier>
+      </Scope>
+      <Scope>
+        <Type>PROCESSID</Type>
+        <InstanceIdentifier>urn:www.cenbii.eu:profile:bii04:ver1.0</InstanceIdentifier>
+      </Scope>
+    </BusinessScope>
+  </StandardBusinessDocumentHeader>
+  <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2">
+    <cbc:UBLVersionID>2.0</cbc:UBLVersionID>
+    <cbc:CustomizationID>urn:www.cenbii.eu:transaction:biicoretrdm010:ver1.0</cbc:CustomizationID>
+    <cbc:ProfileID schemeID="Profile" schemeAgencyID="BII">urn:www.cenbii.eu:profile:bii04:ver1.0</cbc:ProfileID>
+    <cbc:ID>0258395</cbc:ID>
+    <cbc:IssueDate>2016-02-19</cbc:IssueDate>
+    <cbc:InvoiceTypeCode listID="UN/ECE 1001 Subset" listAgencyID="BII">380</cbc:InvoiceTypeCode>
+    <cbc:Note languageID="IS">Umbeðið: asdf</cbc:Note>
+    <cbc:TaxPointDate>2016-02-19</cbc:TaxPointDate>
+    <cbc:DocumentCurrencyCode listID="ISO 4217 Alpha" listAgencyID="6">ISK</cbc:DocumentCurrencyCode>
+  </Invoice>
+</StandardBusinessDocument>
