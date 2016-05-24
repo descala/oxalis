@@ -109,22 +109,14 @@ public class IngentMessageRepository implements MessageRepository {
         LOG.info("Saving inbound message stream using " + IngentMessageRepository.class.getSimpleName());
         LOG.debug("Default inbound message headers " + peppolMessageMetaData);
 
-        String payload;
-        // convert payloadInputStream to String
-        try {
-	    payloadInputStream.mark(Integer.MAX_VALUE);
-            payload = new String(Util.intoBuffer(payloadInputStream, Long.MAX_VALUE));
-	    payloadInputStream.reset();
-        } catch (IOException ex) {
-            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
-        }
-
         // save a backup
         File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
         File backupFullPath = new File("");
         try {
             backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
+            payloadInputStream.mark(Integer.MAX_VALUE);
             saveDocument(payloadInputStream, backupFullPath);
+            payloadInputStream.reset();
             File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
             saveHeader(peppolMessageMetaData, messageHeaderFilePath);
         } catch (Exception e) {
@@ -134,7 +126,7 @@ public class IngentMessageRepository implements MessageRepository {
 
         try {
             String b64_document;
-            b64_document = compress_b64(payload);
+            b64_document = compress_b64(payloadInputStream);
             System.out.println("BASE64: " + b64_document);
             LOG.info(b64_document);
             createTransactionToWs(b64_document, peppolMessageMetaData);
