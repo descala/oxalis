@@ -13,14 +13,20 @@ It comes with a basic command line tool for sending messages, outbound raw stati
 Binary distributions are available at [Difi](http://vefa.difi.no/oxalis/).
 
 
-# New features in Oxalis 3
+# Newest version is Oxalis 3.1
 
-* Support for both START and AS2 transport protocols
-* Support for new EHF and BIS formats based on UBL 2.1
+* Support for MySQL, MS-Sql and Oracle for raw statistics (oxalis.jdbc.dialect property)
+* Support for new EHF and BIS formats based on UBL (OIOUBL, NESUBL, Svefaktura etc)
 * Inbound persistence stores transport metadata as JSON file
 * Inbound persistence stores full payload as XML file (whole SBDH for AS2)
-* Outbound TransmissionRequestBuilder simplifies sending when using Oxalis as API
- 
+* Fixed potential issues communicating with "POODLE" patched servers
+
+
+# Important Notes about Oxalis 3.1
+
+* Maven grouping was changed to no.difi.oxalis (was no.sendregning.ap), make sure you update local dependencies
+* Overriding DocumentId, ProcessId, Sender, Receiver and endpoint URL is no longer allowed in production mode
+* New configuration parameter for SQL-dialect `oxalis.jdbc.dialect` (see usage in oxalis-commons/src/main/resources/oxalis-global.properties)
 
 # Oxalis components
 
@@ -51,10 +57,13 @@ Binary distributions are available at [Difi](http://vefa.difi.no/oxalis/).
 * Deploy `oxalis.war` to your Tomcat `webapps` directory
 * Send a sample invoice; modify `example.sh` to your liking and execute it.
 * See the [installation guide](/doc/install/installation.md) for more additional details.
+* To install or replace the PEPPOL certificate, see the [keystore document](/doc/keystore.md). 
 * If you need to modify any of the source code, you are advised to read the [Oxalis developer notes](/developer-readme.md)
 
 
 # Troubleshooting
+
+* `Sending failed ... Received fatal alert: handshake_failure` happens when Oxalis cannot establish HTTPS connection with the remote server.  Usually because destination AccessPoint has "poodle patched" their HTTPS server.  Oxalis v3.1.0 contains fixes for this, so you need to upgrade.  See the https://github.com/difi/oxalis/issues/197 for more info.
 
 * `Provider net.sf.saxon.TransformerFactoryImpl not found` might be an XSLT implementation conflice between Oxalis and the [VEFA validator](https://github.com/difi/vefa-validator-app).  VEFA needs XSLT 2.0 and explicitly set Saxon 9 as the transformer engine to the JVM.  Since Saxon 9 is not used and included with Oxalis you'll end up with that error on the Oxalis side.  To get rid of the error make sure you run Oxalis and VEFA in separate Tomcats/JVM processes.
 
@@ -71,14 +80,14 @@ The official releases are tagged and may be downloaded by clicking on [Tags](htt
 * make sure [JDK 6](http://www.oracle.com/technetwork/java/javase/) is installed (the version we have tested with)
 * pull the version of interest from [GitHub](https://github.com/difi/oxalis).
 * from `oxalis` root directory run : `mvn clean install`
-* verify that everything is configured : `mvn clean install -Dit-test` (runs the integration tests)
+* verify that everything is configured : `mvn clean install -Pit-test` (runs the integration tests)
 * locate assembled artifacts in `oxalis-distribution/target/oxalis-distribution-<version.number>-distro/` (after integration tests)
 
 # Miscellaneous notes:
 
 * At `oxalis-standalone/src/main/bash` you will find some shell scripts :
     - `fetch-metatdata.sh` is a freestanding SML + SMP lookup utility (example usage `./fetch-metadata.sh 9908:810017902`)
-    - `keystore.sh` contains example commands for constructing keystores and truststores
+    - `keystore.sh` contains example commands for constructing keystores and truststores.
     - `smp.sh` simple SMP lookup for a given participant id (example usage `./smp.sh -p 9908:810017902 -g`)
 
 # Securing Oxalis

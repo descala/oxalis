@@ -2,9 +2,9 @@
 
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>no.sendregning.ap</groupId>
+        <groupId>no.difi.oxalis</groupId>
         <artifactId>oxalis</artifactId>
-        <version>3.0.2-SNAPSHOT</version>
+        <version>3.2.0</version>
     </parent>
     <artifactId>oxalis-commons</artifactId>
     <name>Oxalis commons</name>
@@ -43,7 +43,7 @@
         </dependency>
 
         <dependency>
-            <groupId>no.sendregning.ap</groupId>
+            <groupId>no.difi.oxalis</groupId>
             <artifactId>oxalis-api</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -91,6 +91,13 @@
             <version>1.4</version>
         </dependency>
 
+        <!-- Java bindings -->
+        <dependency>
+            <groupId>no.difi.commons</groupId>
+            <artifactId>commons-sbdh</artifactId>
+            <version>0.9.1</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -131,17 +138,6 @@
                             <schemaDirectory>src/main/resources/smp</schemaDirectory>
                             <generatePackage>org.busdox.smp</generatePackage>
                             <generateDirectory>${project.build.directory}/generated-sources/xjc-smp</generateDirectory>
-                        </configuration>
-                    </execution>
-                    <!-- Builds the classes for parsing the Standard Business Document Header (SBDH) -->
-                    <execution>
-                        <id>sbdh</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <generateDirectory>${project.build.directory}/generated-sources/xjc-sbdh</generateDirectory>
-                            <schemaDirectory>src/main/resources/sbdh</schemaDirectory>
                         </configuration>
                     </execution>
                 </executions>

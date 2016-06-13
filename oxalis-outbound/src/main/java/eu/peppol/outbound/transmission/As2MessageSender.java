@@ -12,15 +12,9 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.HttpHostConnectException;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContexts;
-import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -43,6 +37,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ProxySelector;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 
@@ -87,7 +82,7 @@ class As2MessageSender implements MessageSender {
                 endpointAddress,
                 as2SystemIdentifierOfSender);
 
-        return new As2TransmissionResponse(transmissionId, transmissionRequest.getPeppolStandardBusinessHeader());
+        return new As2TransmissionResponse(transmissionId, transmissionRequest.getPeppolStandardBusinessHeader(), endpointAddress.getUrl(), endpointAddress.getBusDoxProtocol(), endpointAddress.getCommonName());
     }
 
 
@@ -165,7 +160,7 @@ class As2MessageSender implements MessageSender {
 
         // handle normal HTTP OK response
         log.debug("AS2 transmission " + transmissionId + " to " + endpointAddress + " returned HTTP OK, verify MDN response");
-        return handleTheHttpResponse(transmissionId, mic, postResponse);
+        return handleTheHttpResponse(transmissionId, mic, postResponse, peppolEndpointData);
 
     }
 
@@ -176,7 +171,7 @@ class As2MessageSender implements MessageSender {
      * @param postResponse the http response to be decoded as MDN
      * @return
      */
-    TransmissionId handleTheHttpResponse(TransmissionId transmissionId, Mic outboundMic, CloseableHttpResponse postResponse) {
+    TransmissionId handleTheHttpResponse(TransmissionId transmissionId, Mic outboundMic, CloseableHttpResponse postResponse, SmpLookupManager.PeppolEndpointData peppolEndpointData) {
 
         try {
 
@@ -215,6 +210,13 @@ class As2MessageSender implements MessageSender {
                 SignedMimeMessageInspector signedMimeMessageInspector = new SignedMimeMessageInspector(mimeMessage);
                 X509Certificate cert = signedMimeMessageInspector.getSignersX509Certificate();
                 cert.checkValidity();
+
+                // Verify if the certificate used by the receiving Access Point in
+                // the response message does not match its certificate published by the SMP
+                if (peppolEndpointData.getCommonName() == null || !CommonName.valueOf(cert.getSubjectX500Principal()).equals(peppolEndpointData.getCommonName())) {
+                    throw new CertificateException("Common name in certificate from SMP does not match common name in AP certificate");
+                }
+
                 log.debug("MDN signature was verfied for : " + cert.getSubjectDN().toString());
             } catch (Exception ex) {
                 log.warn("Exception when verifying MDN signature : " + ex.getMessage());
@@ -271,13 +273,19 @@ class As2MessageSender implements MessageSender {
 
     private CloseableHttpClient createCloseableHttpClient() {
 
+        // prefer a TLS context (PEPPOL AS2 Transport Specification require TLS)
         SSLContext sslcontext = null;
-        boolean disableSSLVerificationForAS2 = false; // should be false for production
+        try {
+            sslcontext = SSLContexts.custom().useTLS().build(); // the default context might do TLS only for new HttpClient versions
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to create TLS based SSLContext", ex);
+        }
 
+        // disable certificate validation for production
+        boolean disableSSLVerificationForAS2 = false;
         if (disableSSLVerificationForAS2) {
             log.warn("SSL verification for outbound AS2 is disabled");
             try {
-                sslcontext = SSLContext.getInstance("SSL");
                 sslcontext.init(null, new TrustManager[]{new X509TrustManager() {
                     public X509Certificate[] getAcceptedIssuers() { return null; }
                     public void checkClientTrusted(X509Certificate[] certs, String authType) { /* nothing */ }
@@ -288,22 +296,24 @@ class As2MessageSender implements MessageSender {
             }
         }
 
-        if (sslcontext == null) sslcontext = SSLContexts.createSystemDefault();
-
-        // Use custom hostname verifier to customize SSL hostname verification.
-        X509HostnameVerifier hostnameVerifier = new AllowAllHostnameVerifier();
-
+        // "SSLv3" is disabled by default : http://www.apache.org/dist/httpcomponents/httpclient/RELEASE_NOTES-4.3.x.txt
         SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslcontext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
         SystemDefaultRoutePlanner routePlanner = new SystemDefaultRoutePlanner(ProxySelector.getDefault());
+
         CloseableHttpClient httpclient = HttpClients.custom()
                 .setSSLSocketFactory(sslsf)
                 .setRoutePlanner(routePlanner)
                 .build();
 
+        /*
+        // TODO make proper http connection pooling
         Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
                 .register("http", PlainConnectionSocketFactory.INSTANCE)
-                .register("https", new SSLConnectionSocketFactory(sslcontext, hostnameVerifier))
+                .register("https", new SSLConnectionSocketFactory(sslcontext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER))
                 .build();
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+        CloseableHttpClient httpclient = HttpClients.custom().setConnectionManager(cm).build();
+        */
 
         return httpclient;
 

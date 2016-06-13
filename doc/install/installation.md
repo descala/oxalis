@@ -4,7 +4,7 @@ The purpose of this document is to document how to install Oxalis as simple as p
 
 ## Prerequisites
 
-* Java JDK 1.6 (newer versions might work, but untested)
+* Java JDK 1.6 (newer versions should also work)
 * [Maven 3+](http://maven.apache.org/download.cgi) (if you plan to build Oxalis yourself)
 * [Tomcat 7+](http://tomcat.apache.org/download-70.cgi) (if you have a different JEE container, you need to figure out the differences on your own, sorry :-)
 * [MySQL 5.1+](http://www.mysql.com/downloads/mysql/) (the free version is named MySQL Community Server)
@@ -39,14 +39,14 @@ When running the following commands you should expect output similar to the one 
     1. On Windows do this: `ant -Dtomcat.home="%TOMCAT_HOME%" -f metro-on-tomcat.xml install`
 
 1. Obtain the binary artifacts for Oxalis by either:
-    1. Downloading the binary artifacts from [DIFI](http://vefa.difi.no/oxalis/) 
+    1. Downloading the binary artifacts from [DIFI](http://vefa.difi.no/oxalis/) and unpack the distribution. 
     1. Building yourself from the source at [GitHub](https://github.com/difi/oxalis/)
 
 1. Create the oxalis database for storing statistical data as required by the PEPPOL Authority:
 
 1. Create MySQL user named "oxalis" with a password of "Blomster2013"
 
-1. Create MySQL database Oxalis and run the script to create the raw_stats-mysql.sql
+1. Create MySQL database Oxalis and run the script to create the `raw_stats-mysql.sql
 
         > mysql -u root -p
         Enter password:
@@ -57,6 +57,8 @@ When running the following commands you should expect output similar to the one 
         > mysql -u oxalis -pBlomster2013 oxalis < raw_stats-mysql.sql
 
 1. Create a OXALIS_HOME diretory in which you place files that do not change between new releases of Oxalis.
+   We recommend that you create `.oxalis` in what is considered the home directory of the user running Oxalis. If you
+   are using Tomcat, it should be the home directory of the tomcat user.
 
 1. Copy your Oxalis keystore holding your private key together with your PEPPOL certificate into `OXALIS_HOME`. I personally name this file `oxalis-production.jks`.  See the [Oxalis keystore guide](/doc/keystore.md) for further details.
 
@@ -66,7 +68,7 @@ When running the following commands you should expect output similar to the one 
 
 1. Copy the file `oxalis.war` into your Tomcat deployment directory, example :
 
-        cp oxalis-distribution/target/oxalis-distribution-3.0.0/jee/oxalis.war /users/oxalis/apache-tomcat-7.0.54/webapps
+        cp oxalis-distribution/target/oxalis-distribution-x.y.z/jee/oxalis.war /users/oxalis/apache-tomcat-7.0.56/webapps
 
 1. Start Tomcat, check the logs for any errors and make sure the [oxalis status page](https://localhost:443/oxalis/status) seems right (the URL could be differet for your setup).
 

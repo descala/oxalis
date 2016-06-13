@@ -40,6 +40,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
@@ -225,6 +226,9 @@ public class SmpLookupManagerImpl implements SmpLookupManager {
         try {
 
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            // Prevents XML entity expansion attacks
+            documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING,true);
+
             documentBuilderFactory.setNamespaceAware(true);
             DocumentBuilder documentBuilder;
             Document document;
@@ -379,21 +383,26 @@ public class SmpLookupManagerImpl implements SmpLookupManager {
     Document createXmlDocument(InputSource smpContents) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
+        // Prevents XML entity expansion attacks
+        documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         return documentBuilder.parse(smpContents);
     }
 
     /**
-     * Helper method, which extracts the X509 certificate for an end point.
+     * Helper method, which extracts a valid X509 certificate for an end point.
      */
     private X509Certificate getX509CertificateFromEndpointType(EndpointType endpointType) {
         try {
             String body = endpointType.getCertificate();
             String endpointCertificate = "-----BEGIN CERTIFICATE-----\n" + body + "\n-----END CERTIFICATE-----";
             CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-            return (X509Certificate) certificateFactory.generateCertificate(new ByteArrayInputStream(endpointCertificate.getBytes()));
+            X509Certificate cert = (X509Certificate)certificateFactory.generateCertificate(new ByteArrayInputStream(endpointCertificate.getBytes()));
+            cert.checkValidity();
+            return cert;
         } catch (CertificateException e) {
-            throw new RuntimeException("Failed to get certificate from Endpoint data");
+            throw new RuntimeException("Failed to get valid certificate from Endpoint data", e);
         }
     }
 
@@ -453,8 +462,12 @@ public class SmpLookupManagerImpl implements SmpLookupManager {
         Map<BusDoxProtocol, EndpointType> protocolsAndEndpointType = new HashMap<BusDoxProtocol, EndpointType>();
 
         for (EndpointType endpointType : endPointsForDocumentTypeIdentifier) {
-            BusDoxProtocol busDoxProtocol = BusDoxProtocol.instanceFrom(endpointType.getTransportProfile());
-            protocolsAndEndpointType.put(busDoxProtocol, endpointType);
+            try {
+                BusDoxProtocol busDoxProtocol = BusDoxProtocol.instanceFrom(endpointType.getTransportProfile());
+                protocolsAndEndpointType.put(busDoxProtocol, endpointType);
+            } catch(Exception ex) {
+                log.warn("Skipping endpoint, unable to handle protocol {}", endpointType.getTransportProfile());
+            }
         }
 
         BusDoxProtocol preferredProtocol = busDoxProtocolSelectionStrategy.selectOptimalProtocol(new ArrayList<BusDoxProtocol>(protocolsAndEndpointType.keySet()));

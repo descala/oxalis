@@ -2,9 +2,9 @@ package eu.sendregning.oxalis;
 
 import com.sun.xml.ws.transport.http.client.HttpTransportPipe;
 import eu.peppol.BusDoxProtocol;
-import eu.peppol.PeppolStandardBusinessHeader;
 import eu.peppol.identifier.ParticipantId;
 import eu.peppol.identifier.PeppolDocumentTypeId;
+import eu.peppol.identifier.PeppolProcessTypeId;
 import eu.peppol.outbound.OxalisOutboundModule;
 import eu.peppol.outbound.transmission.*;
 import joptsimple.OptionParser;
@@ -34,6 +34,7 @@ public class Main {
     private static OptionSpec<Boolean> trace;
     private static OptionSpec<String> destinationSystemId;  // The AS2 destination system identifier
     private static OptionSpec<String> docType;              // The PEPPOL document type (very long string)
+    private static OptionSpec<String> profileType;          // The PEPPOL document profile
 
     public static void main(String[] args) throws Exception {
 
@@ -81,7 +82,7 @@ public class Main {
             // creates a transmission request builder and enable tracing
             TransmissionRequestBuilder requestBuilder = oxalisOutboundModule.getTransmissionRequestBuilder();
             requestBuilder.trace(trace.value(optionSet));
-            System.out.println("Request builder of messages to the debug log is : " + requestBuilder.isTraceEnabled());
+            System.out.println("Trace mode of RequestBuilder: " + requestBuilder.isTraceEnabled());
 
             // add receiver participant
             if (recipientId != null) {
@@ -95,6 +96,10 @@ public class Main {
 
             if (docType != null && docType.value(optionSet) != null) {
                 requestBuilder.documentType(PeppolDocumentTypeId.valueOf(docType.value(optionSet)));
+            }
+
+            if (profileType != null && profileType.value(optionSet) != null) {
+                requestBuilder.processType(PeppolProcessTypeId.valueOf(profileType.value(optionSet)));
             }
 
             // Supplies the payload
@@ -138,9 +143,10 @@ public class Main {
             TransmissionResponse transmissionResponse = transmitter.transmit(transmissionRequest);
 
             // Write the transmission id and where the message was delivered
-            System.out.printf("Message sent to %s using %s was assigned transmissionId : %s\n",
-                    transmissionRequest.getEndpointAddress().getUrl().toString(),
-                    transmissionRequest.getEndpointAddress().getBusDoxProtocol().toString(),
+            System.out.printf("Message using messageId %s sent to %s using %s was assigned transmissionId %s\n",
+                    transmissionResponse.getStandardBusinessHeader().getMessageId().stringValue(),
+                    transmissionResponse.getURL().toExternalForm(),
+                    transmissionResponse.getProtocol().toString(),
                     transmissionResponse.getTransmissionId()
                 );
 
@@ -161,6 +167,7 @@ public class Main {
     static OptionParser getOptionParser() {
         OptionParser optionParser = new OptionParser();
         docType = optionParser.accepts("d", "Document type").withRequiredArg();
+        profileType = optionParser.accepts("p", "Profile type").withRequiredArg();
         xmlDocument = optionParser.accepts("f", "XML document file to be sent").withRequiredArg().ofType(File.class).required();
         sender = optionParser.accepts("s", "sender [e.g. 9908:976098897]").withRequiredArg();
         recipient = optionParser.accepts("r", "recipient [e.g. 9908:976098897]").withRequiredArg();

@@ -157,6 +157,10 @@ public enum GlobalConfiguration {
         return JDBC_DRIVER_CLASS_PATH.getValue(properties);
     }
 
+    public String getJdbcDialect() {
+        return JDBC_DIALECT.getValue(properties);
+    }
+
     /**
      * Location of the Difi private key, which belongs to oxalis-statistics-public.key
      *
@@ -290,6 +294,11 @@ public enum GlobalConfiguration {
         JDBC_VALIDATION_QUERY("oxalis.jdbc.validation.query", false, "select 1", false),
 
         /**
+         * The SQL dialect used at the backend of JDBC connection.
+         */
+        JDBC_DIALECT("oxalis.jdbc.dialect", false, "mysql", false),
+		
+		/**
          * Name of JNDI Data Source
          */
         @Deprecated()
@@ -342,7 +351,7 @@ public enum GlobalConfiguration {
          * Will override SML hostname if defined in properties file. Makes it possible to route trafic to other SMLs
          * than the official SMLs.
          *
-         * Example: oxalis.xml.hostname=sml.peppolcentral.org
+         * Example: oxalis.sml.hostname=sml.peppolcentral.org
          */
         SML_HOSTNAME("oxalis.sml.hostname", false, "", false);
 

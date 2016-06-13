@@ -6,6 +6,7 @@ import java.util.regex.Pattern;
 
 /**
  * Represents a type safe PEPPOL Document Identifier, textually represented thus:
+ *
  * <pre>
  *     &lt;root NS>::&lt;document element local name>##&lt;customization id>::&lt;version>
  * </pre>

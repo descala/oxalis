@@ -1,6 +1,7 @@
 package eu.peppol.outbound.transmission;
 
 import com.google.inject.Inject;
+import eu.peppol.BusDoxProtocol;
 import eu.peppol.PeppolStandardBusinessHeader;
 import eu.peppol.identifier.*;
 import eu.peppol.outbound.soap.SoapDispatcher;
@@ -13,6 +14,7 @@ import org.w3._2009._02.ws_tra.Create;
 import org.w3._2009._02.ws_tra.FaultMessage;
 import org.w3c.dom.Document;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.net.URL;
@@ -50,7 +52,7 @@ class StartMessageSender implements MessageSender {
                     transmissionRequest.getEndpointAddress().getUrl());
             // for START the transmissionId of a successful transfer will be the same as the messageId UUID
             TransmissionId transmissionId = new TransmissionId(messageId.toUUID());
-            StartTransmissionResponse startTransmissionResponse = new StartTransmissionResponse(transmissionId, sbdh);
+            StartTransmissionResponse startTransmissionResponse = new StartTransmissionResponse(transmissionId, sbdh, transmissionRequest.getEndpointAddress().getUrl(), BusDoxProtocol.START);
             return startTransmissionResponse;
 
         } catch (FaultMessage faultMessage) {
@@ -64,7 +66,11 @@ class StartMessageSender implements MessageSender {
 
         try {
             log.debug("Constructing document body....");
-            Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(byteArrayInputStream);
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            // Prevents XML entity expansion attacks
+            documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+
+            Document document = documentBuilderFactory.newDocumentBuilder().parse(byteArrayInputStream);
             return document;
         } catch (Exception e) {
             throw new IllegalStateException("Unable to parseMultipart byte stream into a valid XML Document; " + e.getMessage(), e);

@@ -4,8 +4,10 @@ import eu.peppol.PeppolStandardBusinessHeader;
 import eu.peppol.document.parsers.PEPPOLDocumentParser;
 import org.w3c.dom.Document;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathFactory;
 import java.io.InputStream;
@@ -23,6 +25,12 @@ public class NoSbdhParser {
     public NoSbdhParser() {
         documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
+
+        try {
+            documentBuilderFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING,true);
+        } catch (ParserConfigurationException e) {
+            throw new IllegalStateException("Unable to configure DOM parser for secure processing.", e);
+        }
     }
 
     public PeppolStandardBusinessHeader parse(InputStream inputStream) {
@@ -35,23 +43,29 @@ public class NoSbdhParser {
             XPath xPath = XPathFactory.newInstance().newXPath();
             xPath.setNamespaceContext(new HardCodedNamespaceResolver());
 
-            PeppolStandardBusinessHeader sbdh = new PeppolStandardBusinessHeader();
+            PeppolStandardBusinessHeader sbdh = PeppolStandardBusinessHeader.createPeppolStandardBusinessHeaderWithUniqueMessageIdAndDate();
 
             // use the plain UBL header parser to decode format and create correct document parser
             PlainUBLHeaderParser headerParser = new PlainUBLHeaderParser(document, xPath);
-            sbdh.setDocumentTypeIdentifier(headerParser.fetchDocumentTypeId());
-            sbdh.setProfileTypeIdentifier(headerParser.fetchProcessTypeId());
 
-            // try to use a specialized document parser to fetch more document details
-            try {
-                PEPPOLDocumentParser documentParser = headerParser.createDocumentParser();
-                sbdh.setSenderId(documentParser.getSender());
-                sbdh.setRecipientId(documentParser.getReceiver());
-            } catch (Exception ex) {
-                /*
-                    allow this to happen so that "unknown" PEPPOL documents still
-                    can be used by explicitly setting sender and receiver thru API
-                */
+            // make sure we actually have a UBL type document
+            if (headerParser.canParse()) {
+
+                sbdh.setDocumentTypeIdentifier(headerParser.fetchDocumentTypeId());
+                sbdh.setProfileTypeIdentifier(headerParser.fetchProcessTypeId());
+
+                // try to use a specialized document parser to fetch more document details
+                try {
+                    PEPPOLDocumentParser documentParser = headerParser.createDocumentParser();
+                    sbdh.setSenderId(documentParser.getSender());
+                    sbdh.setRecipientId(documentParser.getReceiver());
+                } catch (Exception ex) {
+                    /*
+                        allow this to happen so that "unknown" PEPPOL documents still
+                        can be used by explicitly setting sender and receiver thru API
+                    */
+                }
+
             }
 
             return sbdh;

@@ -25,7 +25,7 @@ import static org.testng.Assert.assertNotNull;
 public class TestResourceModule extends AbstractModule {
 
     public static final String PEPPOL_BIS_INVOICE_SBD_XML = "peppol-bis-invoice-sbdh.xml";
-    public static final String EHF_T10_ALLE_ELEMENTER_XML = "ehf-t10-alle-elementer.xml";
+    public static final String EHF_T10_ALLE_ELEMENTER_XML = "ehf-bii05-t10-valid-invoice.xml";
     public static final String EHF_T10_MANGLER_ELEMENTER_XML = "ehf-t10-mangler-elementer.xml";
 
     @Override
@@ -207,12 +207,33 @@ public class TestResourceModule extends AbstractModule {
         return map;
     }
 
+    /**
+     * Provides a Map of non-UBL type resource names and PeppolStandardBusinessHeader data.
+     * Oxalis should allow new or unknown formats to be transported using PEPPOL.
+     */
+    @Provides
+    @Named("test-non-ubl-documents")
+    public Map<String, PeppolStandardBusinessHeader> getNonUBLTestData() {
+        Map<String, PeppolStandardBusinessHeader> map = new HashMap<String, PeppolStandardBusinessHeader>();
+
+        //
+        // example non-UBL document scenario (contributed by Jacob Lund Mogensen), should be allowed
+        //
+
+        map.put("OIOXML/OIOXML_PCM_99018008_ValidKnown-Original.xml", createPeppolStandardBusinessHeader(
+                "Invoice", "http://rep.oio.dk/ubl/xml/schemas/0p71/pcm/", "1.0",
+                "urn:customization",
+                "9908:123456789", "9908:99018008", "urn:profile"));
+
+        return map;
+    }
+
     private PeppolStandardBusinessHeader createPeppolStandardBusinessHeader(
             String localname, String namespace, String version,
             String customization,
             String sender, String receiver, String profileId)
     {
-        PeppolStandardBusinessHeader p = new PeppolStandardBusinessHeader();
+        PeppolStandardBusinessHeader p = PeppolStandardBusinessHeader.createPeppolStandardBusinessHeaderWithUniqueMessageIdAndDate();
         p.setDocumentTypeIdentifier(new PeppolDocumentTypeId(namespace, localname, new CustomizationIdentifier(customization), version));
         p.setSenderId(new ParticipantId(sender));
         p.setRecipientId(new ParticipantId(receiver));

@@ -1,12 +1,13 @@
 package eu.peppol.outbound.transmission;
 
 import com.google.inject.Inject;
-import com.google.inject.Injector;
 import com.google.inject.name.Named;
 import eu.peppol.BusDoxProtocol;
 import eu.peppol.PeppolStandardBusinessHeader;
-import eu.peppol.identifier.*;
-import eu.peppol.outbound.OxalisOutboundModule;
+import eu.peppol.identifier.MessageId;
+import eu.peppol.identifier.PeppolDocumentTypeIdAcronym;
+import eu.peppol.identifier.PeppolProcessTypeIdAcronym;
+import eu.peppol.identifier.WellKnownParticipant;
 import eu.peppol.outbound.guice.TestResourceModule;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -18,21 +19,20 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.testng.Assert.*;
 
 /**
+ * These tests needs TransmissionRequestBuilder to run in TEST-mode to be able to override values
+ *
  * @author steinar
  * @author thore
  */
-@Guice(modules = {TransmissionTestModule.class, TestResourceModule.class})
+@Guice(modules = {TransmissionTestModule.class, TestResourceModule.class })
 public class TransmissionRequestBuilderTest {
 
-    TransmissionRequestBuilder transmissionRequestBuilder;
-
     @Inject
-    Injector injector;
+    OverridableTransmissionRequestBuilderCreator overridableTransmissionRequestBuilderCreator;
 
     @Inject @Named("sample-xml-with-sbdh")
     InputStream inputStreamWithSBDH;
@@ -46,9 +46,14 @@ public class TransmissionRequestBuilderTest {
     @Inject @Named("test-files-with-identification")
     public Map<String, PeppolStandardBusinessHeader> testFilesForIdentification;
 
+    @Inject @Named("test-non-ubl-documents")
+    public Map<String, PeppolStandardBusinessHeader> testNonUBLFiles;
+
+    TransmissionRequestBuilder transmissionRequestBuilder;
+
     @BeforeMethod
     public void setUp() {
-        transmissionRequestBuilder = injector.getInstance(TransmissionRequestBuilder.class);
+        transmissionRequestBuilder = overridableTransmissionRequestBuilderCreator.createTansmissionRequestBuilderAllowingOverrides();
         inputStreamWithSBDH.mark(Integer.MAX_VALUE);
         noSbdhInputStream.mark(Integer.MAX_VALUE);
     }
@@ -60,11 +65,16 @@ public class TransmissionRequestBuilderTest {
     }
 
     @Test
+    public void makeSureWeAllowOverrides() {
+        assertNotNull(transmissionRequestBuilder);
+        assertTrue(transmissionRequestBuilder.isOverrideAllowed());
+    }
+
+    @Test
     public void createTransmissionRequestBuilderWithOnlyTheMessageDocument() throws Exception {
 
         assertNotNull(transmissionRequestBuilder);
         assertNotNull(inputStreamWithSBDH);
-        assertNotNull(transmissionRequestBuilder.sbdhParser);
 
         transmissionRequestBuilder.payLoad(inputStreamWithSBDH);
 
@@ -88,15 +98,14 @@ public class TransmissionRequestBuilderTest {
     @Test
     public void xmlWithNoSBDH() throws Exception {
 
-        TransmissionRequestBuilder builder = transmissionRequestBuilder.payLoad(noSbdhInputStream)
-                                                        .receiver(WellKnownParticipant.DIFI);
+        TransmissionRequestBuilder builder = transmissionRequestBuilder.payLoad(noSbdhInputStream).receiver(WellKnownParticipant.DIFI_TEST);
         TransmissionRequest request = builder.build();
 
         assertNotNull(builder);
         assertNotNull(builder.getEffectiveStandardBusinessHeader(), "Effective SBDH is null");
 
-        assertEquals(builder.getEffectiveStandardBusinessHeader().getRecipientId(), WellKnownParticipant.DIFI, "Receiver has not been overridden");
-        assertEquals(request.getPeppolStandardBusinessHeader().getRecipientId(), WellKnownParticipant.DIFI);
+        assertEquals(builder.getEffectiveStandardBusinessHeader().getRecipientId(), WellKnownParticipant.DIFI_TEST, "Receiver has not been overridden");
+        assertEquals(request.getPeppolStandardBusinessHeader().getRecipientId(), WellKnownParticipant.DIFI_TEST);
 
     }
 
@@ -181,23 +190,21 @@ public class TransmissionRequestBuilderTest {
     @Test
     public void makeSureWeDetectMissingProperties() {
         try {
-            TransmissionRequest request = transmissionRequestBuilder
+            transmissionRequestBuilder
                     .payLoad(missingMetadataInputStream)
                     .build();
             fail("The build() should have failed indicating missing properties");
         } catch (Exception ex) {
-            assertEquals(ex.getMessage(), "TransmissionRequest can not be built, recipientId, senderId metadata was missing");
+            assertEquals(ex.getMessage(), "TransmissionRequest can not be built, missing [recipientId, senderId] metadata.");
         }
     }
 
     /**
      * Test decoding of various PEPPOL UBL / EHF document types.
-     * Make sure type, profile, customization, version, sender and receivcer are retrieved correctly from all.
+     * Make sure type, profile, customization, version, sender and receiver are retrieved correctly from all.
      */
     @Test
     public void testIdentificationOfAllFiles() throws Exception {
-
-        OxalisOutboundModule oxalisOutboundModule = new OxalisOutboundModule();
 
         for (String key : testFilesForIdentification.keySet()) {
 
@@ -206,7 +213,7 @@ public class TransmissionRequestBuilderTest {
             InputStream inputStream = TransmissionTestModule.class.getClassLoader().getResourceAsStream(key);
             assertNotNull(inputStream, "Unable to load '" + key + "' from classpath");
 
-            TransmissionRequestBuilder requestBuilder = oxalisOutboundModule.getTransmissionRequestBuilder();
+            TransmissionRequestBuilder requestBuilder = overridableTransmissionRequestBuilderCreator.createTansmissionRequestBuilderAllowingOverrides();
             requestBuilder.savePayLoad(inputStream);
             requestBuilder.overrideEndpointForStartProtocol(new URL("https://ap-test.unit4.com/override/trick/to/preventSMPLookup"));
             TransmissionRequest request = requestBuilder.build();
@@ -214,6 +221,44 @@ public class TransmissionRequestBuilderTest {
             PeppolStandardBusinessHeader facit = testFilesForIdentification.get(key);
             PeppolStandardBusinessHeader found = request.getPeppolStandardBusinessHeader();
 
+            assertEquals(found.getDocumentTypeIdentifier(), facit.getDocumentTypeIdentifier());
+            assertEquals(found.getProfileTypeIdentifier(), facit.getProfileTypeIdentifier());
+            assertEquals(found.getSenderId(), facit.getSenderId());
+            assertEquals(found.getRecipientId(), facit.getRecipientId());
+
+        }
+
+    }
+
+    /**
+     * Test that we allow various non UBL document types, as long as they have explicit set mandatory PEPPOL
+     * headers : type, profile, customization, version, sender and receiver.
+     */
+    @Test
+    public void testIdentificationOfNonUBLFiles() throws Exception {
+
+        for (String key : testNonUBLFiles.keySet()) {
+
+            System.out.printf("Accepting '%s'\n", key);
+
+            InputStream inputStream = TransmissionTestModule.class.getClassLoader().getResourceAsStream(key);
+            assertNotNull(inputStream, "Unable to load '" + key + "' from classpath");
+
+            PeppolStandardBusinessHeader facit = testNonUBLFiles.get(key);
+
+            TransmissionRequestBuilder requestBuilder = overridableTransmissionRequestBuilderCreator.createTansmissionRequestBuilderAllowingOverrides();
+            requestBuilder.savePayLoad(inputStream);
+            requestBuilder
+                    .overrideEndpointForStartProtocol(new URL("https://ap-test.unit4.com/override/trick/to/preventSMPLookup"))
+                    .receiver(facit.getRecipientId())
+                    .sender(facit.getSenderId())
+                    .documentType(facit.getDocumentTypeIdentifier())
+                    .processType(facit.getProfileTypeIdentifier());
+
+            TransmissionRequest request = requestBuilder.build();
+
+            // the build() process should not have overridden any values we provided
+            PeppolStandardBusinessHeader found = request.getPeppolStandardBusinessHeader();
             assertEquals(found.getDocumentTypeIdentifier(), facit.getDocumentTypeIdentifier());
             assertEquals(found.getProfileTypeIdentifier(), facit.getProfileTypeIdentifier());
             assertEquals(found.getSenderId(), facit.getSenderId());
