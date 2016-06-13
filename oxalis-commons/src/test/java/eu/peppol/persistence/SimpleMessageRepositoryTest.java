@@ -29,22 +29,22 @@ public class SimpleMessageRepositoryTest {
         // reserved in windows : <>:"/|\?*
         assertEquals(SimpleMessageRepository.normalizeFilename(
             "Reserved<>:\"/|\\?*Windows"),
-            "Reserved_________Windows");
+            "Reserved_________Windows".toLowerCase());
 
         // never end with "\t" tab
         assertEquals(SimpleMessageRepository.normalizeFilename(
             "No\tTab\tAt\tEnd\t"),
-            "No_Tab_At_End_");
+            "No_Tab_At_End_".toLowerCase());
 
         // never include or end in " " space
         assertEquals(SimpleMessageRepository.normalizeFilename(
             "No Space Any Where "),
-            "No_Space_Any_Where_");
+            "No_Space_Any_Where_".toLowerCase());
 
         // just some random combination to assert - and . are still allowed
         assertEquals(SimpleMessageRepository.normalizeFilename(
             "Crazy<File.xml>Name@With¨Loads/Of\\Il-legal´Chars\t"),
-            "Crazy_File.xml_Name_With_Loads_Of_Il-legal_Chars_");
+            "Crazy_File.xml_Name_With_Loads_Of_Il-legal_Chars_".toLowerCase());
 
     }
 
