@@ -67,7 +67,12 @@
             <groupId>org.easymock</groupId>
             <artifactId>easymock</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>no.difi.oxalis</groupId>
+            <artifactId>oxalis-api</artifactId>
+            <version>3.2.0</version>
+            <type>jar</type>
+        </dependency>
     </dependencies>
 
     <build>

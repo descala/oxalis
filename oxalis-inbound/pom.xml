@@ -132,7 +132,7 @@
             <version>1.1</version>
         </dependency>
         <dependency>
-            <groupId>no.sendregning.ap</groupId>
+            <groupId>no.difi.oxalis</groupId>
             <artifactId>ingent-persistence</artifactId>
             <version>${project.version}</version>
         </dependency>
