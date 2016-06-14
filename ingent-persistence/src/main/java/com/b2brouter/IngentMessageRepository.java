@@ -30,7 +30,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.json.simple.JSONObject;
-import eu.peppol.util.Util;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
@@ -59,6 +58,9 @@ public class IngentMessageRepository implements MessageRepository {
         globalConfiguration = GlobalConfiguration.getInstance();
     }
 
+    public IngentMessageRepository(GlobalConfiguration gc) {
+        globalConfiguration = gc;
+    }
     @Override
     // Used in START
     public void saveInboundMessage(PeppolMessageMetaData peppolMessageMetaData, Document document) throws OxalisMessagePersistenceException {
@@ -106,33 +108,47 @@ public class IngentMessageRepository implements MessageRepository {
     // Used in AS2
     public void saveInboundMessage(PeppolMessageMetaData peppolMessageMetaData, InputStream payloadInputStream) throws OxalisMessagePersistenceException {
 
-        LOG.info("Saving inbound message stream using " + IngentMessageRepository.class.getSimpleName());
-        LOG.debug("Default inbound message headers " + peppolMessageMetaData);
+      LOG.info("Saving inbound message stream using " + IngentMessageRepository.class.getSimpleName());
+      LOG.debug("Default inbound message headers " + peppolMessageMetaData);
 
-        // save a backup
-        File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
-        File backupFullPath = new File("");
-        try {
-            backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
-            payloadInputStream.mark(Integer.MAX_VALUE);
-            saveDocument(payloadInputStream, backupFullPath);
-            payloadInputStream.reset();
-            File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
-            saveHeader(peppolMessageMetaData, messageHeaderFilePath);
-        } catch (Exception e) {
-            LOG.error("Can't save backup for " + backupFullPath);
-            LOG.error(e.getMessage());
+      // Copy to RAM
+      // because we need to use the InputStream twice: backup and ws
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      try {
+        int n;
+        byte[] buffer = new byte[16384];
+        while ((n = payloadInputStream.read(buffer)) > -1) {
+          baos.write(buffer, 0, n);
         }
+      } catch (IOException ex) {
+        throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+      }
+      InputStream backupStream = new ByteArrayInputStream(baos.toByteArray());
+      InputStream wsStream = new ByteArrayInputStream(baos.toByteArray());
 
-        try {
-            String b64_document;
-            b64_document = compress_b64(payloadInputStream);
-            System.out.println("BASE64: " + b64_document);
-            LOG.info(b64_document);
-            createTransactionToWs(b64_document, peppolMessageMetaData);
-        } catch (IOException ex) {
-            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
-        }
+      // 1) save a backup
+      File backupDirectory = prepareBackupDirectory(globalConfiguration.getProperty(BACKUPS_PATH), peppolMessageMetaData.getRecipientId(), peppolMessageMetaData.getSenderId());
+      File backupFullPath = new File("");
+      try {
+        backupFullPath = computeMessageFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
+        saveDocument(backupStream, backupFullPath);
+        File messageHeaderFilePath = computeHeaderFileName(peppolMessageMetaData.getTransmissionId(), backupDirectory);
+        saveHeader(peppolMessageMetaData, messageHeaderFilePath);
+      } catch (Exception e) {
+        LOG.error("Can't save backup for " + backupFullPath);
+        LOG.error(e.getMessage());
+      }
+
+      // 2) call ws
+      try {
+        String b64_document;
+        b64_document = compress_b64(wsStream);
+        System.out.println("BASE64: " + b64_document);
+        LOG.info(b64_document);
+        createTransactionToWs(b64_document, peppolMessageMetaData);
+      } catch (IOException ex) {
+        throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+      }
 
     }
 
