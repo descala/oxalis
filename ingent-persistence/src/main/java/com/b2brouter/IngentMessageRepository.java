@@ -81,25 +81,29 @@ public class IngentMessageRepository implements MessageRepository {
             LOG.error(e.getMessage());
         }
 
-        try {
-            DOMSource domSource = new DOMSource(document);
-            StringWriter writer = new StringWriter();
-            StreamResult result = new StreamResult(writer);
-            TransformerFactory tf = TransformerFactory.newInstance();
-            Transformer transformer = tf.newTransformer();
-            transformer.transform(domSource, result);
+        if ( globalConfiguration.getProperty(API_URL) != null ) {
+            try {
+                DOMSource domSource = new DOMSource(document);
+                StringWriter writer = new StringWriter();
+                StreamResult result = new StreamResult(writer);
+                TransformerFactory tf = TransformerFactory.newInstance();
+                Transformer transformer = tf.newTransformer();
+                transformer.transform(domSource, result);
 
-            String b64_document = compress_b64(writer.toString());
-            //System.out.println("BASE64: " + b64_document);
-            //LOG.info(b64_document);
-            createTransactionToWs(b64_document, peppolMessageMetaData);
+                String b64_document = compress_b64(writer.toString());
+                //System.out.println("BASE64: " + b64_document);
+                //LOG.info(b64_document);
+                createTransactionToWs(b64_document, peppolMessageMetaData);
 
-        } catch (TransformerConfigurationException ex) {
-            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
-        } catch (TransformerException ex) {
-            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
-        } catch (IOException ex) {
-            throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+            } catch (TransformerConfigurationException ex) {
+                throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+            } catch (TransformerException ex) {
+                throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+            } catch (IOException ex) {
+                throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+            }
+        } else {
+            LOG.warn("ingent.api.url not configured, skip transaction creation on WS");
         }
 
     }
@@ -140,14 +144,18 @@ public class IngentMessageRepository implements MessageRepository {
       }
 
       // 2) call ws
-      try {
-        String b64_document;
-        b64_document = compress_b64(wsStream);
-        System.out.println("BASE64: " + b64_document);
-        LOG.info(b64_document);
-        createTransactionToWs(b64_document, peppolMessageMetaData);
-      } catch (IOException ex) {
-        throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+      if (globalConfiguration.getProperty(API_URL) != null) {
+          try {
+              String b64_document;
+              b64_document = compress_b64(wsStream);
+              System.out.println("BASE64: " + b64_document);
+              LOG.info(b64_document);
+              createTransactionToWs(b64_document, peppolMessageMetaData);
+          } catch (IOException ex) {
+              throw new OxalisMessagePersistenceException(peppolMessageMetaData, ex);
+          }
+      } else {
+          LOG.warn("ingent.api.url not configured, skip transaction creation on WS");
       }
 
     }
