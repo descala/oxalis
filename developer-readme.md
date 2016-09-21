@@ -30,7 +30,7 @@ test group `integration`:
 
     @Test(groups = {"integration"})
 
-Furthermore, all such integration tests are excluded from the default maven test execution, which is performed with the
+Furthermore, all such integration tests are excluded from the default maven test execution, which are executed using the 
 surefire plugin:
 
     <plugin>
@@ -54,20 +54,20 @@ references *your keystore*. In addition the MySQL database must be installed wit
 
 In the `pom.xml` files, this is achieved by including the following declaration in a profile named *it-test*:
 
-            <profile>
-                <!-- Used for integration testing -->
-                <id>it-test</id>
-                <build>
+        <profile>
+            <id>it-test</id>
+            <build>
+                <pluginManagement>
                     <plugins>
                         <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-surefire-plugin</artifactId>
-                        </plugin>
-                    </plugins>
-                </build>
-            </profile>
+                            <groupId>org.codehaus.cargo</groupId>
+                            <artifactId>cargo-maven2-plugin</artifactId>
+                            <configuration>
+                                <container>
+                                    <containerId>tomcat7x</containerId>
+                                    .....
 
-Have a look at `oxalis-collector/pom.xml` to see further details.
+Have a look at `oxalis-integration-test/pom.xml` to see further details.
 
 ### Functional tests with a running server (oxalis-integration-test)
 
@@ -92,24 +92,6 @@ The basic steps of this module are:
 Your `OXALIS_HOME` directory must exist and should contain a complete configuration, which is specified in `oxalis-global.properties`.
 Please consult the installation instructions for further details. Looking at the `oxalis-global.properties` should give you
 some clues as to what you need to do :-)
-
-If you are going to run your integration tests with a "Jenkins", you must not forget to install the Metro (JAX-WS) libraries into your
-JDK.
-
-If you have a mixed installation with a JDK and a JRE, you should consult the contents of the property `java.endorsed.dirs` to figure out
-into which directory you should install the `webservices-api.jar`.
-
-This little program will give you the answer:
-
-    public class P {
-
-    	public static void main(String[] args) {
-
-    		System.out.println(System.getProperty("java.endorsed.dirs"));
-    	}
-    }
-
-*Note!* The installation of Metro into you JDK/JRE only applies if you are running Java version 1.6 or below.
 
 Here is another trick, which should give you some information as to your build environment:
 
