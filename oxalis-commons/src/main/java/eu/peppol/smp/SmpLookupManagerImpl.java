@@ -396,7 +396,8 @@ public class SmpLookupManagerImpl implements SmpLookupManager {
     private X509Certificate getX509CertificateFromEndpointType(EndpointType endpointType) {
         try {
             String body = endpointType.getCertificate();
-            String endpointCertificate = "-----BEGIN CERTIFICATE-----\n" + body + "\n-----END CERTIFICATE-----";
+            String body_sanitized = body.replace(" ", "");
+            String endpointCertificate = "-----BEGIN CERTIFICATE-----\n" + body_sanitized + "\n-----END CERTIFICATE-----";
             CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
             X509Certificate cert = (X509Certificate)certificateFactory.generateCertificate(new ByteArrayInputStream(endpointCertificate.getBytes()));
             cert.checkValidity();
