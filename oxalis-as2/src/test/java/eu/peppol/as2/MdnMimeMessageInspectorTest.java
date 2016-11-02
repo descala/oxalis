@@ -41,6 +41,7 @@ import static org.testng.Assert.*;
 public class MdnMimeMessageInspectorTest {
 
     public static final String OPENAS2_MDN_TXT = "openas2-mdn.txt";
+    public static final String EDICOM_MDN_TXT = "edicom-mdn.txt";
     public static final String OPENAS2_MDN_NO_HEADERS_TXT = "openas2-mdn-no-headers.txt";
     public static final String IBX_MDN_BASE64 = "real-mdn-examples/ibx-mdn-base64.txt";
 
@@ -49,6 +50,19 @@ public class MdnMimeMessageInspectorTest {
 
         InputStream resourceAsStream = MdnMimeMessageInspectorTest.class.getClassLoader().getResourceAsStream(OPENAS2_MDN_TXT);
         assertNotNull(resourceAsStream, "Unable to find " + OPENAS2_MDN_TXT + " in class path");
+
+        MimeMessage mimeMessage = MimeMessageHelper.createMimeMessage(resourceAsStream);
+        MdnMimeMessageInspector mdnMimeMessageInspector = new MdnMimeMessageInspector(mimeMessage);
+        String plainText = mdnMimeMessageInspector.getPlainTextPartAsText();
+        assertNotNull(plainText);
+
+    }
+
+    @Test
+    public void parseEdicomAS2MDN() throws Exception {
+
+        InputStream resourceAsStream = MdnMimeMessageInspectorTest.class.getClassLoader().getResourceAsStream(EDICOM_MDN_TXT);
+        assertNotNull(resourceAsStream, "Unable to find " + EDICOM_MDN_TXT + " in class path");
 
         MimeMessage mimeMessage = MimeMessageHelper.createMimeMessage(resourceAsStream);
         MdnMimeMessageInspector mdnMimeMessageInspector = new MdnMimeMessageInspector(mimeMessage);
@@ -109,5 +123,4 @@ public class MdnMimeMessageInspectorTest {
         assertEquals(fields.get("Received-Content-MIC"), "VZOW8aRv9e8uEQEdGRdxwcOYH1g=, sha1");
 
     }
-
 }

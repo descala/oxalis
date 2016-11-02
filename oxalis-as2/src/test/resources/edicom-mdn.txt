@@ -1,0 +1,83 @@
+Date: Wed, 13 Nov 2013 09:30:14 +0100
+From: OpenAS2 A email
+Message-ID: <OPENAS2-13112013093014+0100-1135@OpenAS2A_OpenAS2B>
+Subject: Your Requested MDN Response
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pkcs7-signature"; micalg=sha1;
+	boundary="----=_Part_64079_139006763.1478078553117"
+AS2-To: OpenAS2B
+AS2-From: OpenAS2A
+AS2-Version: 1.1
+Server ph-OpenAS2 v1.0 is not blacklisted
+Server: ph-OpenAS2 v1.0
+Content-Length: 2169
+
+------=_Part_64079_139006763.1478078553117
+Content-Type: multipart/report; Report-Type=disposition-notification; 
+	boundary="----=_Part_64077_1992416189.1478078553108"
+
+------=_Part_64077_1992416189.1478078553108
+Content-Type: Text/Plain
+Content-Transfer-Encoding: 8bit
+
+MDN for - 
+  MessageID     : 369b3e30-9fa7-4a73-bc39-a44ea9152d19
+  From                : APP_1000000233
+  To                   : APP_1000000097
+  Subject           : AS2 message from OXALIS
+  Received on   : 02/11/2016 10:22:33
+  Status             : Processed
+  Coment           : This is not a guarantee that the message has
+                           been completely processed or understood by 
+                           Edicom AS2/AS4 Java Server.
+
+------=_Part_64077_1992416189.1478078553108
+Content-Type: message/disposition-notification
+Content-Transfer-Encoding: 8bit
+
+Reporting-UA: AS2/AS4 Java Server; Edicom AS2/AS4 Java Server 3.0.1
+Original-Recipient: rfc822; APP_1000000097
+Final-Recipient: rfc822; APP_1000000097
+Original-Message-ID: 369b3e30-9fa7-4a73-bc39-a44ea9152d19
+Disposition: automatic-action/MDN-sent-automatically;processed
+Received-content-MIC: 0w+X1lkJeqnHIIz6Q4n0lWo76us=, sha1
+
+------=_Part_64077_1992416189.1478078553108--
+
+------=_Part_64079_139006763.1478078553117
+Content-Type: application/pkcs7-signature; name=smime.p7s; smime-type=signed-data
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="smime.p7s"
+Content-Description: S/MIME Cryptographic Signature
+
+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
+------=_Part_64079_139006763.1478078553117--
+ 
