@@ -75,6 +75,7 @@ public enum SchemeId {
     VA_VAT("VA:VAT", "9953"),
     NL_ION("NL:OIN", "9954"), /* was wrongly noted as NL:ION in the peppol document */
     SE_VAT("SE:VAT", "9955"),
+    BE_CBE("BE:CBE", "9956"), /* Belgian Crossroad Bank of Enterprises to the list as BE:CBE  9956 */
     ZZ_("ZZZ", "9999");
 
     final String schemeId;
