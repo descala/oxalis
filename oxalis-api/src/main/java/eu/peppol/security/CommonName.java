@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
  */
 public class CommonName {
 
-    public static final String CN_PATTERN = "CN=([^,]*),";
+    public static final String CN_PATTERN = "CN=([^,]*)";
     public static final Pattern commonNamePattern = Pattern.compile(CN_PATTERN);
 
     private final String commonNameTextValue;
